@@ -1,0 +1,5 @@
+{
+  "buildCommand": "rm -f app/docs && cp -R docs app/docs",
+  "outputDirectory": "app",
+  "framework": null
+}

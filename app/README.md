@@ -14,7 +14,6 @@ The static site of the open demo. What the project is, how to run it and how the
 | `domain.html`, `app.js` | 3D factory of a subdomain, with the guided tour |
 | `office.js` | The office building with the subdomain staff, used in the factory and the world |
 | `world.html`, `world.js` | 3D Insight Factories world: zones, roads, trucks, ranking and monthly awards |
-| `map.html`, `map.js` | Earlier 3D factory map of all domains |
 | `graph.html`, `graph.js`, `net.js`, `links-model.js` | Links window: cost × value, lineage graph (2D and 3D), flow; shared link data and findings |
 | `net.html` | Redirect to `graph.html?v=net` for old links |
 | `glmap3d.js` | 3D map of all glossary terms of a domain |

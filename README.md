@@ -55,7 +55,6 @@ Open http://localhost:8080/. The generator is deterministic: the same seed gives
 | `domain.html?d=<i>` | | 3D factory of one subdomain: raw materials → workshops (data marts) → warehouses (metrics) → docks (dashboards); add `&tour=1` for a guided tour |
 | `world.html` | | 3D Insight Factories world: domains as industrial zones, roads and trucks for data exchange, monthly awards |
 | `graph.html?d=<i>` | | Links window: cost × value, lineage graph in 2D and 3D, flow (Sankey) |
-| `map.html` | | Earlier 3D factory map: domains as territories, subdomains as buildings |
 | `doc.html?f=spec\|refs\|glossary` | | The docs from `docs/` rendered in the app |
 
 ## AI-Ready score in brief
@@ -78,4 +77,4 @@ The design draws on public products and games, listed block by block in [docs/re
 
 ## License
 
-MIT (placeholder, to be confirmed). Add a `LICENSE` file before publishing.
+MIT — see [LICENSE](LICENSE).
