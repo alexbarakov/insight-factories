@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css?v=100">
+<style>
+:root{font:400 14.5px/1.6 var(--font-ui);color:var(--ink)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg)}a{color:var(--accent)}
+.wrap{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;max-width:1240px;margin:0 auto;padding:64px 24px 80px}
+nav{position:sticky;top:64px;align-self:start;max-height:calc(100vh - 90px);overflow-y:auto;font-size:13px;display:grid;gap:4px}
+nav .h{font-weight:600;margin-bottom:6px}nav a{color:var(--ink2);text-decoration:none;padding:2px 0}nav a:hover{color:var(--ink)}
+nav .docs{display:grid;gap:4px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}nav .docs a.on{color:var(--ink);font-weight:600}
+main{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px 36px 40px;min-width:0}
+h1{font-size:26px;line-height:1.2;margin:0 0 12px}h2{font-size:20px;margin:34px 0 10px;padding-top:6px}h3{font-size:16px;margin:24px 0 6px}h4{font-size:14px;margin:18px 0 4px}
+p{margin:8px 0}ul,ol{margin:6px 0;padding-left:22px}li{margin:3px 0}
+code{background:var(--chip);border-radius:5px;padding:1px 5px;font-size:12.5px}pre{background:var(--chip);border-radius:10px;padding:12px 14px;overflow-x:auto}pre code{background:none;padding:0}
+.tw{overflow-x:auto;margin:10px 0}table{border-collapse:collapse;font-size:13px;width:100%}th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+th{font-weight:600;background:var(--surface-2)}tr.grp td{background:var(--bg2);font-weight:600}
+.meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink3);margin-bottom:18px}.meta a{color:var(--ink2)}
+.back{position:fixed;top:10px;left:16px;font-size:13px;color:var(--ink2);text-decoration:none;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 13px}
+@media (max-width:900px){.wrap{grid-template-columns:1fr;padding:60px 14px}nav{position:static;max-height:none}main{padding:20px 16px}}
+</style>
+</head>
+<body>
+<a class="back" href="index.html">← Back to portal</a>
+<div class="wrap"><nav id="toc"></nav><main id="doc">Loading…</main></div>
+<script type="module">
+import { md } from './md.js?v=100';
+const DOCS = { spec: ['Spec and blocks', 'docs/functional-blocks.md'], refs: ['Market references', 'docs/references.md'], glossary: ['Glossary as a knowledge graph', 'docs/glossary-kg-design.md'], tokens: ['Design tokens', 'docs/design-tokens.md'] };
+const f = DOCS[new URLSearchParams(location.search).get('f')] ? new URLSearchParams(location.search).get('f') : 'spec', [title, path] = DOCS[f];
+const txt = await fetch(path + '?v=' + Date.now()).then(r => r.ok ? r.text() : Promise.reject(r.status)).catch(e => null);
+const doc = document.getElementById('doc');
+if (txt == null) doc.textContent = `Could not load ${path}`;
+else { const { html, toc } = md(txt); document.title = title;
+  doc.innerHTML = `<div class="meta"><span>${title}</span><a href="${path}" target="_blank">source .md ↗</a></div>` + html;
+  document.getElementById('toc').innerHTML = `<div class="docs">${Object.entries(DOCS).map(([k, [t]]) => `<a href="?f=${k}" class="${k === f ? 'on' : ''}">${t}</a>`).join('')}</div>
+    <div class="h">Sections</div>${toc.map(([id, t]) => `<a href="#${id}">${t.replace(/\*\*/g, '')}</a>`).join('')}`;
+  if (location.hash) document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView(); }
+</script>
+</body>
+</html>

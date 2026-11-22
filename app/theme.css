@@ -1,0 +1,117 @@
+/* Harbor Market · Insight Factories — design tokens.
+   Single source of colors, fonts, radii and shadows for every page.
+   Light theme on :root; dark theme via prefers-color-scheme (unless data-theme="light") or data-theme="dark".
+   JS reads these with getComputedStyle(document.documentElement).getPropertyValue('--name'). See docs/design-tokens.md. */
+:root{
+  color-scheme:light;
+  /* neutrals: cool harbor-water bias (hue ~195) */
+  --bg:#EEF2F3;          /* app ground */
+  --bg2:#F4F7F8;         /* sunken areas, quiet fills */
+  --surface:#FFFFFF;     /* cards, panels, inputs */
+  --surface-2:#F7F9FA;   /* row hover */
+  --chip:#E8EEF0;        /* chips, segmented controls */
+  --track:#E3E9EC;       /* empty part of bars and meters */
+  --line:#DCE3E6;
+  --line-strong:#C3CDD2;
+  --ink:#13212A;
+  --ink2:#4D5F69;
+  --ink3:#7F909A;
+  --on-ink:#FFFFFF;      /* text on --ink fills */
+  /* accent: deep harbor teal */
+  --accent:#0A7684;
+  --accent-hover:#075F6B;
+  --accent-soft:#DDEFF1;
+  --accent-line:#A9D3D8;
+  --on-accent:#FFFFFF;
+  /* semantic */
+  --ok:#2E8A57;   --ok-soft:#E1F1E7;   --ok-ink:#1E6A41;   --ok-line:#B8DDC6;
+  --warn:#C88A12; --warn-soft:#FAEFD6; --warn-ink:#8C5F07; --warn-line:#EED39C;
+  --bad:#C4453A;  --bad-soft:#F8E2DF;  --bad-ink:#9C3027;  --bad-line:#EDC4BE; --bad-track:#EBC7C1;
+  --grey:#A7B3B9;
+  --info:#34689A; --info-soft:#E5EDF5; --info-line:#B9CDE1;                    /* demo / example badges */
+  --wip:#6A55B0;  --wip-soft:#EEEAF7;  --wip-soft2:#F7F5FC; --wip-line:#CDC3EC;  /* not built yet, logic TBD */
+  --key:#7A4E9C;  --key-soft:#F2EAF6;  --key-line:#DCC6E6;                      /* key / certified objects */
+  --game:#CB5A17; --game-soft:#FBECE1; --game-line:#EFC6A8;                     /* game layer */
+  /* AI-Ready levels L0–L4: fill, text, soft background */
+  --lv0:#B6C0C5; --lv0-ink:#5C6C75; --lv0-soft:#ECF0F2;
+  --lv1:#AD6E38; --lv1-ink:#7F4F22; --lv1-soft:#F4E8DC;
+  --lv2:#8796A0; --lv2-ink:#4C5B65; --lv2-soft:#E7ECEF;
+  --lv3:#BF9629; --lv3-ink:#7A600F; --lv3-soft:#F5EDCF;
+  --lv4:#3C8C7A; --lv4-ink:#276656; --lv4-soft:#DFF0EA;
+  /* chart series, in order of use */
+  --s1:#0A7684; --s2:#D08A1E; --s3:#8C5BA8; --s4:#4E9A68;
+  --s5:#C0563F; --s6:#4F79A6; --s7:#8B8737; --s8:#6E808A;
+  /* domain relations on maps and graphs */
+  --rel-self:var(--accent); --rel-sup:#4F79A6; --rel-con:#B04E8C; --rel-both:#6A55B0;
+  /* overlays and 3D */
+  --glass:rgba(255,255,255,.9);
+  --glass-strong:rgba(255,255,255,.96);
+  --scrim:rgba(19,33,42,.2);
+  --halo:#FFFFFF;          /* text halo on charts and 3D labels */
+  --scene-bg:#DCE6EA;      /* 3D world sky / ground clear color */
+  --shadow-rgb:19,33,42;
+  /* type */
+  --font-ui:"Source Sans 3","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  /* radii */
+  --r-xs:4px; --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:14px; --r-pill:999px;
+  /* shadows */
+  --sh-1:0 1px 2px rgba(var(--shadow-rgb),.12);
+  --sh-2:0 2px 8px rgba(var(--shadow-rgb),.08);
+  --sh-3:0 10px 30px rgba(var(--shadow-rgb),.14);
+  --sh-side:-20px 0 40px rgba(var(--shadow-rgb),.08);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0D1418; --bg2:#111B20; --surface:#151F25; --surface-2:#1A262D; --chip:#22303A; --track:#26343D;
+    --line:#2A3842; --line-strong:#3C4D57; --ink:#E2EAEE; --ink2:#A2B1B9; --ink3:#71838D; --on-ink:#0D1418;
+    --accent:#3BB0BC; --accent-hover:#5CC3CD; --accent-soft:#123238; --accent-line:#1F5961; --on-accent:#04171A;
+    --ok:#4DB57C;   --ok-soft:#13301F;   --ok-ink:#7CD3A2;   --ok-line:#22543A;
+    --warn:#DDA640; --warn-soft:#352910; --warn-ink:#EBC170; --warn-line:#5E4718;
+    --bad:#E4695D;  --bad-soft:#3A1B19;  --bad-ink:#F09A90;  --bad-line:#6A2E29; --bad-track:#5A2E2A;
+    --grey:#5F6F78;
+    --info:#6FA0D2; --info-soft:#15253A; --info-line:#2C4766;
+    --wip:#9C8BE0;  --wip-soft:#231E3A;  --wip-soft2:#1C1930; --wip-line:#463D74;
+    --key:#C08AD9;  --key-soft:#2E1D36;  --key-line:#573A66;
+    --game:#EE8443; --game-soft:#3A2213; --game-line:#6E3D1E;
+    --lv0:#4D5B63; --lv0-ink:#A2B1B9; --lv0-soft:#22303A;
+    --lv1:#C98650; --lv1-ink:#E0A574; --lv1-soft:#3A2818;
+    --lv2:#9AA8B2; --lv2-ink:#BAC6CE; --lv2-soft:#27313A;
+    --lv3:#D9B044; --lv3-ink:#E8C766; --lv3-soft:#3A3112;
+    --lv4:#55AE98; --lv4-ink:#7FCCB7; --lv4-soft:#15352D;
+    --s1:#3BB0BC; --s2:#E3A03E; --s3:#B48ACF; --s4:#6DBA86;
+    --s5:#E07A62; --s6:#7FA6D1; --s7:#B8B25A; --s8:#93A5AF;
+    --rel-sup:#7FA6D1; --rel-con:#D47AB3; --rel-both:#9C8BE0;
+    --glass:rgba(21,31,37,.9); --glass-strong:rgba(21,31,37,.96); --scrim:rgba(0,0,0,.45);
+    --halo:#151F25; --scene-bg:#0F1A20; --shadow-rgb:0,0,0;
+    --sh-1:0 1px 2px rgba(0,0,0,.4); --sh-2:0 2px 8px rgba(0,0,0,.35); --sh-3:0 10px 30px rgba(0,0,0,.5); --sh-side:-20px 0 40px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0D1418; --bg2:#111B20; --surface:#151F25; --surface-2:#1A262D; --chip:#22303A; --track:#26343D;
+  --line:#2A3842; --line-strong:#3C4D57; --ink:#E2EAEE; --ink2:#A2B1B9; --ink3:#71838D; --on-ink:#0D1418;
+  --accent:#3BB0BC; --accent-hover:#5CC3CD; --accent-soft:#123238; --accent-line:#1F5961; --on-accent:#04171A;
+  --ok:#4DB57C;   --ok-soft:#13301F;   --ok-ink:#7CD3A2;   --ok-line:#22543A;
+  --warn:#DDA640; --warn-soft:#352910; --warn-ink:#EBC170; --warn-line:#5E4718;
+  --bad:#E4695D;  --bad-soft:#3A1B19;  --bad-ink:#F09A90;  --bad-line:#6A2E29; --bad-track:#5A2E2A;
+  --grey:#5F6F78;
+  --info:#6FA0D2; --info-soft:#15253A; --info-line:#2C4766;
+  --wip:#9C8BE0;  --wip-soft:#231E3A;  --wip-soft2:#1C1930; --wip-line:#463D74;
+  --key:#C08AD9;  --key-soft:#2E1D36;  --key-line:#573A66;
+  --game:#EE8443; --game-soft:#3A2213; --game-line:#6E3D1E;
+  --lv0:#4D5B63; --lv0-ink:#A2B1B9; --lv0-soft:#22303A;
+  --lv1:#C98650; --lv1-ink:#E0A574; --lv1-soft:#3A2818;
+  --lv2:#9AA8B2; --lv2-ink:#BAC6CE; --lv2-soft:#27313A;
+  --lv3:#D9B044; --lv3-ink:#E8C766; --lv3-soft:#3A3112;
+  --lv4:#55AE98; --lv4-ink:#7FCCB7; --lv4-soft:#15352D;
+  --s1:#3BB0BC; --s2:#E3A03E; --s3:#B48ACF; --s4:#6DBA86;
+  --s5:#E07A62; --s6:#7FA6D1; --s7:#B8B25A; --s8:#93A5AF;
+  --rel-sup:#7FA6D1; --rel-con:#D47AB3; --rel-both:#9C8BE0;
+  --glass:rgba(21,31,37,.9); --glass-strong:rgba(21,31,37,.96); --scrim:rgba(0,0,0,.45);
+  --halo:#151F25; --scene-bg:#0F1A20; --shadow-rgb:0,0,0;
+  --sh-1:0 1px 2px rgba(0,0,0,.4); --sh-2:0 2px 8px rgba(0,0,0,.35); --sh-3:0 10px 30px rgba(0,0,0,.5); --sh-side:-20px 0 40px rgba(0,0,0,.4);
+}
+/* numbers in tables and code use the mono face */
+code,pre,kbd,samp{font-family:var(--font-mono);font-size:.92em}
