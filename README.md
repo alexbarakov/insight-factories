@@ -1,5 +1,8 @@
 # Insight Factories
 
+**Live demo:** https://stop-token.com/lab/insight-factories/ · mirror https://insight-factories.vercel.app
+
+
 An observability module for domain data governance. For each business domain and subdomain it shows the state of the data, an AI-Ready score with two axes, the causes behind the score and the tasks that move it. An optional game layer shows each subdomain as a factory and the company as a world of factories.
 
 This repository is a demo on synthetic data for **Harbor Market**, a fictional online marketplace and classifieds platform. No real company, people or production data are involved: every number comes from `pipeline/generate.mjs`.
