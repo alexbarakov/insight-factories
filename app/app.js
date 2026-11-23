@@ -26,13 +26,13 @@ const cls = s => s >= 0.5 ? 'ok' : s >= 0.25 ? 'warn' : 'bad';
 const hash = s => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const fmtDate = d => new Date(d + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-// default factory: the first Goods subdomain that has objects
-const DEF_D = Math.max(0, DOMAINS.findIndex((r, i) => r[0] === 'Goods' && OBJECTS.some(o => o[1] === i)));
+// default factory: the first Clinics subdomain that has objects
+const DEF_D = Math.max(0, DOMAINS.findIndex((r, i) => r[0] === 'Clinics' && OBJECTS.some(o => o[1] === i)));
 const QS = new URLSearchParams(location.search), DI = Math.max(0, Math.min(DOMAINS.length - 1, parseInt(QS.get('d') ?? String(DEF_D), 10) || 0));
 const EMBED = QS.get('embed') === '1';
 if (EMBED) document.documentElement.classList.add('embed');
-// Jobs subdomains get a hand-made workshop map (by keywords in object names); other subdomains are clustered automatically
-const DR = DOMAINS[DI], DOM = { l1: DR[0], l2: DR[1], air: DR[15] || 0, bp: !!DR[2] }, JOBS_D = DR[0] === 'Jobs';
+// Clinics subdomains get a hand-made workshop map (by keywords in object names); other subdomains are clustered automatically
+const DR = DOMAINS[DI], DOM = { l1: DR[0], l2: DR[1], air: DR[15] || 0, bp: !!DR[2] }, HAND_D = DR[0] === 'Clinics';
 const TT = ['dash', 'met', 'dm'], OBJ = { dm: [], met: [], dash: [] };
 OBJECTS.forEach(r => { if (r[1] === DI) OBJ[TT[r[0]]].push({ t: TT[r[0]], name: r[4], s: r[2], pop: r[3], id: r[5] }); });
 Object.values(OBJ).forEach(a => a.sort((x, y) => y.pop - x.pop));
@@ -55,24 +55,24 @@ function clusterBy(objs, k) {
 // ---------- workshops, warehouses, docks ----------
 // certified data marts get their own workshop in a separate zone
 const isCert = o => o.s === 1 || o.s === 3, CERT_DM = OBJ.dm.filter(isCert), RAW_DM = OBJ.dm.filter(o => !isCert(o));
-const GROUPS = JOBS_D ? [
-  { id: 'w1', kind: 'hall', name: 'Workshop "Vacancies"', re: /vacanc|job_post|posting|listing|title/i },
-  { id: 'w2', kind: 'hall', name: 'Workshop "Applications and contacts"', re: /applic|contact|respons|interview|call|chat|messag|match|hire/i },
-  { id: 'w3', kind: 'hall', name: 'Workshop "Resumes"', re: /resume|\bcv|seeker|candid/i },
-  { id: 'w4', kind: 'hall', name: 'Workshop "Revenue and sales"', re: /revenue|segment|billing|pay|tariff|sales|lead|bonus|price/i },
-  { id: 'w5', kind: 'hall', name: 'Workshop "Users"', re: null },
-  { id: 'm1', kind: 'store', name: 'Warehouse "Paid contacts"', re: /paid|amount|revenue|arpu|cost|price|gmv|margin/i },
-  { id: 'm2', kind: 'store', name: 'Warehouse "Messaging"', re: /msg|chat|messag|call|repl|response/i },
-  { id: 'm3', kind: 'store', name: 'Warehouse "Search and listings"', re: /serp|search|ctr|rec|widget|listing/i },
-  { id: 'm4', kind: 'store', name: 'Warehouse "Vacancies and activity"', re: null },
+const GROUPS = HAND_D ? [
+  { id: 'w1', kind: 'hall', name: 'Workshop "Visits"', re: /visit|encounter|checkin|walkin|consult/i },
+  { id: 'w2', kind: 'hall', name: 'Workshop "Appointments and referrals"', re: /appoint|slot|referr|wait|triage|book/i },
+  { id: 'w3', kind: 'hall', name: 'Workshop "Doctors and rooms"', re: /doctor|room|chair|therap|specialt/i },
+  { id: 'w4', kind: 'hall', name: 'Workshop "Procedures and diagnoses"', re: /procedur|diagnos|scan|mri|radiolog|dental|plan/i },
+  { id: 'w5', kind: 'hall', name: 'Workshop "Patients"', re: null },
+  { id: 'm1', kind: 'store', name: 'Warehouse "Revenue and cost"', re: /revenue|bill|cost|margin|ltv|cac|per_visit|per_patient/i },
+  { id: 'm2', kind: 'store', name: 'Warehouse "Wait times"', re: /wait|median_time|p90_time|turnaround|sla/i },
+  { id: 'm3', kind: 'store', name: 'Warehouse "Capacity and utilization"', re: /utiliz|occupan|fill_rate|capacity|noshow|cancel/i },
+  { id: 'm4', kind: 'store', name: 'Warehouse "Visits and activity"', re: null },
 ] : [
   ...clusterBy(RAW_DM, RAW_DM.length < 12 ? 1 : 5).map((c, i) => ({ id: 'w' + (i + 1), kind: 'hall', name: c.word ? `Workshop "${c.word}"` : 'Workshop "data marts"', objs: c.objs, auto: true })),
   ...clusterBy(OBJ.met, OBJ.met.length < 12 ? 1 : 4).map((c, i) => ({ id: 'm' + (i + 1), kind: 'store', name: c.word ? `Warehouse "${c.word}"` : 'Warehouse "metrics"', objs: c.objs, auto: true })),
 ];
-if (JOBS_D) GROUPS.forEach(g => g.objs = []);
+if (HAND_D) GROUPS.forEach(g => g.objs = []);
 const halls = GROUPS.filter(g => g.kind === 'hall'), stores = GROUPS.filter(g => g.kind === 'store');
-if (JOBS_D) RAW_DM.forEach(o => (halls.find(g => g.re && g.re.test(o.name)) || halls[4]).objs.push(o));
-if (JOBS_D) OBJ.met.forEach(o => (stores.find(g => g.re && g.re.test(o.name)) || stores[3]).objs.push(o));
+if (HAND_D) RAW_DM.forEach(o => (halls.find(g => g.re && g.re.test(o.name)) || halls[4]).objs.push(o));
+if (HAND_D) OBJ.met.forEach(o => (stores.find(g => g.re && g.re.test(o.name)) || stores[3]).objs.push(o));
 const CERT_HALL = { id: 'wc', kind: 'hall', name: 'Workshop "certified data marts"', objs: CERT_DM, certHall: true };
 GROUPS.push(CERT_HALL); halls.push(CERT_HALL);
 const DOCKS = [
@@ -81,7 +81,7 @@ const DOCKS = [
   { id: 'd3', kind: 'dock', name: 'Dock "AI in Chat"', ai: 'conversations in 30 days: 380', share: 0.27 },
   { id: 'd4', kind: 'dock', name: 'Dock "MCP and SQL Workbench"', ai: 'calls per week: 3,812', share: 0.42 },
 ];
-const SOURCES = [{ id: 's1', kind: 'tank', name: 'Clickstream' }, { id: 's2', kind: 'tank', name: 'Core DWH' }, { id: 's3', kind: 'tank', name: 'Billing' }, ...(JOBS_D ? [{ id: 's4', kind: 'tank', name: 'Partner job feeds' }] : [])];
+const SOURCES = [{ id: 's1', kind: 'tank', name: 'Clickstream' }, { id: 's2', kind: 'tank', name: 'Core DWH' }, { id: 's3', kind: 'tank', name: 'Billing' }, ...(HAND_D ? [{ id: 's4', kind: 'tank', name: 'EHR feed' }] : [])];
 const ALL = [...SOURCES, ...GROUPS, ...DOCKS];
 ALL.forEach(b => { if (b.objs) { b.n = b.objs.length; b.good = b.objs.filter(o => ok(o.s)).length; b.share = b.n ? b.good / b.n : 0; b.use = b.objs.reduce((s, o) => s + o.pop, 0);
   b.cert = b.n ? b.objs.filter(o => o.s === 1 || o.s === 3).length / b.n : 0; } });
@@ -262,9 +262,9 @@ function tintBuilding(b, col) { if (!b.tint) return; b.tint.wallM.color.copy(col
   piles.forEach((p, k) => pm.setMatrixAt(k, new THREE.Matrix4().compose(new THREE.Vector3(...p), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, (k * 0.37) % 0.5, 0)), new THREE.Vector3(1, 1, 1)))); scene.add(pm); }
 
 // ---------- pipes from raw materials to workshops ----------
-const SRC_LINKS = JOBS_D ? { s1: ['w1', 'w2', 'w3', 'w5'], s2: ['w1', 'w4', 'w5'], s3: ['w4'], s4: ['w2', 'w3'] }
+const SRC_LINKS = HAND_D ? { s1: ['w1', 'w2', 'w3', 'w5'], s2: ['w1', 'w4', 'w5'], s3: ['w4'], s4: ['w2', 'w3'] }
   : { s1: halls.map(h => h.id), s2: halls.filter((h, i) => i % 2 === 0).map(h => h.id), s3: [halls[halls.length - 1].id] };
-if (JOBS_D) SRC_LINKS.s2.push('wc');
+if (HAND_D) SRC_LINKS.s2.push('wc');
 function pipe(a, b2) { const len = Math.hypot(b2.x - a.x, b2.z - a.z); if (len < 0.01) return; const m = mesh(new THREE.CylinderGeometry(0.42, 0.42, len, 10), M('#C7CDC9'), (a.x + b2.x) / 2, a.y, (a.z + b2.z) / 2);
   m.rotation.z = Math.abs(b2.x - a.x) > 0.01 ? Math.PI / 2 : 0; m.rotation.x = Math.abs(b2.z - a.z) > 0.01 ? Math.PI / 2 : 0; }
 { const PX = -46; let k = 0;
@@ -273,13 +273,13 @@ function pipe(a, b2) { const len = Math.hypot(b2.x - a.x, b2.z - a.z); if (len <
     for (let i = 1; i < pts.length; i++) pipe(pts[i - 1], pts[i]); })); }
 
 // ---------- conveyors ----------
-const HALL_TO = JOBS_D ? { w1: ['m4', 'm3'], w2: ['m1', 'm2'], w3: ['m3'], w4: ['m1'], w5: ['m2', 'm4'] }
+const HALL_TO = HAND_D ? { w1: ['m4', 'm3'], w2: ['m1', 'm2'], w3: ['m3'], w4: ['m1'], w5: ['m2', 'm4'] }
   : Object.fromEntries(halls.map((h, i) => [h.id, [...new Set([stores[i % stores.length].id, ...(i % 2 && stores.length > 1 ? [stores[(i + 1) % stores.length].id] : [])])]]));
-const STORE_TO = JOBS_D ? { m1: ['d1', 'd2', 'd3'], m2: ['d1', 'd2'], m3: ['d1', 'd4'], m4: ['d1', 'd3', 'd4'] }
+const STORE_TO = HAND_D ? { m1: ['d1', 'd2', 'd3'], m2: ['d1', 'd2'], m3: ['d1', 'd4'], m4: ['d1', 'd3', 'd4'] }
   : Object.fromEntries(stores.map((m, j) => [m.id, ['d1', 'd' + (2 + j % 3)]]));
-const DIRECT = JOBS_D ? { w1: ['d1', 'd4'], w2: ['d1'], w3: ['d4'], w4: ['d1'], w5: ['d1', 'd4'] }
+const DIRECT = HAND_D ? { w1: ['d1', 'd4'], w2: ['d1'], w3: ['d4'], w4: ['d1'], w5: ['d1', 'd4'] }
   : Object.fromEntries(halls.map((h, i) => [h.id, i % 2 ? ['d1'] : ['d1', 'd4']]));
-if (JOBS_D) { HALL_TO.wc = ['m1', 'm4']; DIRECT.wc = ['d1']; }
+if (HAND_D) { HALL_TO.wc = ['m1', 'm4']; DIRECT.wc = ['d1']; }
 const byId = id => ALL.find(b => b.id === id);
 const PATHS = [];
 const exitE = b => b.x + b.w / 2, entryW = b => b.x - b.w / 2;

@@ -9,11 +9,13 @@ import { O3, O3_WEEKS } from './data/o3.js?v=100';
 import { PRODUCTS, go, kbRepo, fixLink, checks, TOOL } from './products.js?v=100';
 import { SKIN } from './skin.js?v=100';
 import { G_DD, G_DM } from './data/graph.js?v=100';
+import { SIG, ANS, SEM, READY, SLO_MIN } from './data/signals.js?v=100';
 
 // Shared model of the Insight Factories portal.
 // Catalog: L1 (domain from the Domain Registry) → L2 (subdomain) → objects. Role and task wording lives in skin.js.
 // Sources (synthetic in this demo): role assignments, AI-Ready inputs and domain knowledge, plus the health score of data marts,
 // metrics and dashboards; names come from the Domain Registry; CPU and storage from infrastructure billing.
+export { SLO_MIN, READY };
 export { SNAPSHOT, INFRA_PERIOD, COST_PERIOD, TREND_DATES, OPS_DATE, INC_DATE, PRODUCTS, kbRepo, fixLink, checks, TOOL };
 export const AIR_MAX = 14;                       // maximum legacy AI Ready points per subdomain
 export const ok = s => s >= 2;
@@ -35,8 +37,21 @@ export const SUBS = DOMAINS.map((r, i) => ({ i, l1: r[0], l2: r[1], bp: !!r[2], 
 export const OBJ_BY_K = [];
 // a certified metric is a key metric (registry badge 'key'); the health score itself has no certification flag for metrics
 const KEYS = new Set(KEY_MET);
-OBJECTS.forEach((r, k) => { const o = { t: TT[r[0]], s: r[0] === 1 ? (r[2] >= 2 ? 2 : 0) + (KEYS.has(k) ? 1 : 0) : r[2], key: r[0] === 1 && KEYS.has(k), pop: r[3], name: r[4], id: r[5], sub: r[1], k, chk: CHK[k] || null, inc: [], down: DOWN[k] || null, cost: COST[k] || null };
-  OBJ_BY_K[k] = o; SUBS[r[1]].t[o.t].push(o); });
+// three signals of the 2027 method (data/signals.js): health = SLO over 28 days by tier, admission = static criteria, certification = BI partner decision.
+// o.s keeps its old shape for the rest of the portal and the 3D world: 2 = healthy by SLO, +1 = certified (certified or in recertification)
+export const TIER = ['Tier 0', 'Tier 1', 'Tier 2', 'Sandbox'];
+export const CAUSE = ['', 'object', 'source', 'platform'];
+export const CERT = ['not certified', 'candidate', 'certified', 'recertification', 'not confirmed'];
+export const ADM_CRIT = { dm: ['owner', 'description', 'domain', 'BI partner', 'Trino', 'unique key', '30% of columns described', 'no deprecated sources'],
+  met: ['schedule', 'no temp schemas', 'no public schemas', 'no duplicates', 'curator', 'description', 'live sources'], dash: ['README', 'built on datasets or metrics'] };
+export const SANDBOX = [];
+OBJECTS.forEach((r, k) => { const g = SIG[k], t = TT[r[0]];
+  const o = { t, key: r[0] === 1 && KEYS.has(k), pop: r[3], name: r[4], id: r[5], sub: r[1], k, chk: CHK[k] || null, inc: [], down: DOWN[k] || null, cost: COST[k] || null,
+    tier: g[0], slo: g[1], cause: g[2], red: g[3], adm: g[4], admLeft: g[5], cert: g[6], certDays: g[7] };
+  o.h = o.slo != null && o.cause === 0; o.ad = !o.adm.includes('0'); o.ce = o.cert === 2 || o.cert === 3; o.ready = o.h && o.ad && o.ce;
+  o.admFail = [...o.adm].map((c, i) => c === '0' ? ADM_CRIT[t][i] : null).filter(Boolean);
+  o.s = (o.h ? 2 : 0) + (o.ce ? 1 : 0);
+  OBJ_BY_K[k] = o; if (o.tier === 3) SANDBOX.push(o); else SUBS[r[1]].t[o.t].push(o); });
 // DQ incidents from Data Contracts: [k, severity 0..3, status o|p|d, opened, closed, chat post id]
 export const IMP = ['minor', 'normal', 'major', 'critical'], IMP_LABEL = ['low', 'medium', 'high', 'critical'];
 INC.forEach(x => { const o = OBJ_BY_K[x[0]]; if (o) o.inc.push(x); });
@@ -191,6 +206,75 @@ function levelUp(d) {
   d.next = d.level != null && d.level < d.rules.length ? d.rules[d.level].filter(r => !r.ok) : [];
 }
 SUBS.forEach(levelUp);
+
+// ============================================================================
+// AI-Ready Domains Score, 2027 method (v4): score of a subdomain = min of P0 attainment over a 28-day window.
+// Three P0 are in the minimum from Q1 2027; two more enter once their computation is ready (READY). Counter-metrics stay outside the minimum.
+// Only Tier 0–2 objects count; sandbox objects are left out of every share.
+// ============================================================================
+export const V4_YEAR = 2027, WINDOW = 28, GOLD_MIN = 50, HELD_MIN = 20, ADM_L1 = 0.7;
+export const GOLD_TH = [{ q: 'Q1–Q2', v: 0.6 }, { q: 'Q3–Q4', v: 0.8 }];
+const use4 = o => (o.pop || 0) + (o.down?.[3] || 0);
+const att = (f, t) => f == null ? null : Math.min(100, f / t * 100);
+// readiness of a P0 metric for the minimum: three automatic conditions
+export const readyOf = r => ({ days: r.days >= WINDOW, tagged: r.tagged >= 0.8, baseline: !!r.baseline, get all() { return this.days && this.tagged && this.baseline; } });
+// [key, section, name, target, how, in minimum now, compute(unit) → { fact, note, n }]
+export const P0 = [
+  ['mart', 'data', 'Consumption of AI-ready data marts', 0.3, 'share of data mart consumption (reads by people, dashboards, services and agents, with downstream weight) that goes to data marts which passed admission, are healthy by SLO and certified', true,
+    d => ({ fact: wsh(d.t.dm, o => o.ready, use4), n: d.t.dm.length })],
+  ['sem', 'meaning', 'Measures covered by healthy metrics', 0.5, 'share of key measures in consumed data marts and report datasets that a healthy Semantic Layer metric represents, weighted by consumption', true,
+    d => { const xs = (d.subs || [d]).map(x => SEM[x.i]).filter(Boolean), W = xs.reduce((t, x) => t + x[0], 0); return { fact: W ? xs.reduce((t, x) => t + x[0] * x[1], 0) / W : null, n: W }; }],
+  ['gold', 'answer', 'Correct answers on the golden set', GOLD_TH[0].v, 'share of correct answers of the agent with the domain knowledge pack on 50+ golden questions; the questions are removed from the pack during the run', true,
+    d => { const xs = (d.subs || [d]).map(x => ANS[x.i]).filter(a => a && a[0] >= GOLD_MIN), N = xs.reduce((t, a) => t + a[0], 0);
+      return { fact: N ? xs.reduce((t, a) => t + a[0] * a[1], 0) / N : (d.subs ? null : 0), n: N, note: N ? null : 'no golden set of 50+ questions' }; }],
+  ['real', 'answer', 'Correct answers on real questions', null, 'share of correct answers on a held-out monthly sample of real questions from agent traces, channel threads and requests; the target is growth from the baseline', false,
+    d => { const xs = (d.subs || [d]).map(x => ANS[x.i]).filter(a => a && a[2] >= HELD_MIN), N = xs.reduce((t, a) => t + a[2], 0);
+      if (!N) return { fact: null, n: 0, note: 'sample under 20 questions' }; const f = xs.reduce((t, a) => t + a[2] * a[3], 0) / N, b = xs.reduce((t, a) => t + a[2] * a[4], 0) / N;
+      return { fact: f, base: b, target: b + 0.1, n: N }; }],
+  ['rep', 'trust', 'Views of trusted reports', 0.45, 'share of report views (owner views excluded) that go to reports certified by the BI partner, healthy by SLO and admitted', false,
+    d => ({ fact: wsh(d.t.dash, o => o.ready), n: d.t.dash.length })],
+];
+export const P0_READY = { real: readyOf(READY.real), rep: readyOf(READY.reports) };
+export const SECTIONS = [['data', 'Data'], ['meaning', 'Meaning'], ['trust', 'Trust'], ['answer', 'Answer'], ['loop', 'Loop'], ['counter', 'Counter-metrics']];
+// drivers (P1): shares on Tier 0–2 objects of the unit
+const shr = (a, f) => a.length ? a.filter(f).length / a.length : null;
+export function drivers(d) { const all = objsOf(d), xs = (d.subs || [d]).map(x => ANS[x.i]).filter(Boolean), fb = xs.reduce((t, a) => [t[0] + a[6], t[1] + a[7], t[2] + a[8], t[3] + a[9]], [0, 0, 0, 0]);
+  const gN = xs.filter(a => a[0] >= GOLD_MIN).reduce((t, a) => t + a[0], 0), aw = xs.reduce((t, a) => t + (a[2] || 1), 0);
+  return { slo: Object.fromEntries(TT.map(t => [t, shr(d.t[t], o => o.h)])), adm: Object.fromEntries(TT.map(t => [t, shr(d.t[t], o => o.ad)])), cert: Object.fromEntries(TT.map(t => [t, shr(d.t[t], o => o.ce)])),
+    noTel: shr(all, o => o.slo == null), breach: all.filter(o => !o.h && o.slo != null).length, admFail: all.filter(o => !o.ad).length,
+    cover: gN ? xs.filter(a => a[0] >= GOLD_MIN).reduce((t, a) => t + a[0] * a[5], 0) / gN : null,
+    trusted: aw ? xs.reduce((t, a) => t + (a[2] || 1) * a[10], 0) / aw : null,
+    fb: { u: fb[0], p: fb[1], n: fb[2], inst: fb[3], bal: fb[2] ? Math.round(100 * (fb[0] - fb[1]) / fb[2]) : null },
+    recert: all.filter(o => o.cert === 3).length, lapsed: all.filter(o => o.cert === 4).length, cand: all.filter(o => o.cert === 1).length }; }
+// counter-metrics: AI use by non-analysts (proxy for JTBD penetration) and useful load per CPU hour (hypothesis)
+export function counters(d) { const load = objsOf(d).filter(o => o.ready).reduce((t, o) => t + use4(o), 0);
+  return { jtbd: o3Of(d), load: d.cpu ? load / d.cpu : null }; }
+export function score4(d, patch = {}) {
+  const p0 = P0.map(([key, sec, name, target, how, now, f]) => { const r = f(d), fact = key in patch ? patch[key] : r.fact, tg = r.target ?? target;
+    const inMin = now, ready = P0_READY[key] || null;
+    return { key, sec, name, how, inMin, ready, ...r, fact, target: tg, att: fact == null ? null : att(fact, tg), none: r.n === 0 && (key === 'mart' || key === 'rep') }; });
+  const m = p0.filter(c => c.inMin && !c.none && c.att != null);
+  return { p0, score: m.length ? Math.round(Math.min(...m.map(c => c.att))) : null, weakest: m.length ? m.reduce((a, b) => b.att < a.att ? b : a) : null }; }
+// levels: L0 no roles; L1 roles and 70% of Tier 0–2 objects pass admission; L2 golden set of 50+ and a published skill;
+// L3 golden set above the threshold and every P0 in the minimum at target except one; L4 every P0 in the minimum at target
+function level4(d, S) { const roles = has(d, 'bp') && has(d, 'st'), adm = shr(objsOf(d), o => o.ad), g = S.p0.find(c => c.key === 'gold'), live = S.p0.filter(c => c.inMin && !c.none);
+  const hit = live.filter(c => c.att >= 100).length, gN = g.n || 0, rule = (name, ok, now) => ({ name, ok: !!ok, now });
+  const pc = v => v == null ? '—' : Math.round(v * 100) + '%';
+  const rules = [
+    [rule('BI partner and data owner assigned', roles, [has(d, 'bp') ? 'BI partner' : 'no BI partner', has(d, 'st') ? 'data owner' : 'no data owner'].join(', ')),
+     rule('Tier 0–2 objects pass admission', adm >= ADM_L1, `${pc(adm)}, needs ${pc(ADM_L1)}`)],
+    [rule(`Golden set of ${GOLD_MIN}+ questions`, gN >= GOLD_MIN, `${gN}`), rule('Knowledge pack skill published', d.skill, d.skill ? 'yes' : 'no')],
+    [rule('Golden set above the threshold', g.fact != null && g.fact >= g.target, `${pc(g.fact)}, threshold ${pc(g.target)}`), rule('Every P0 in the minimum at target except one', hit >= live.length - 1, `${hit} of ${live.length}`)],
+    [rule('Every P0 in the minimum at target', hit === live.length && live.length > 0, `${hit} of ${live.length}`)]];
+  let L = 0; for (const rs of rules) { if (rs.every(r => r.ok)) L++; else break; }
+  return { L, rules }; }
+function apply4(d) { const S = score4(d), lv = level4(d, S); d.v4 = { ...S, drv: drivers(d), cnt: counters(d), rules: lv.rules };
+  if (d.all.n) { d.level = lv.L; d.ards.idx = S.score; d.next = d.level < 4 ? lv.rules[d.level].filter(r => !r.ok) : []; } else d.level = null; }
+SUBS.forEach(apply4);
+// function goal: mean score of subdomains and, next to it, the number of subdomains with a score above 90
+export const ansOf = d => ANS[d.i] || [0, null, 0, null, null, 0, 0, 0, 0, 0, 0];
+export const FUNC = (() => { const xs = SUBS.filter(d => d.all.n && d.v4.score != null); return { n: xs.length, mean: xs.length ? Math.round(xs.reduce((t, d) => t + d.v4.score, 0) / xs.length) : null, above: xs.filter(d => d.v4.score > 90).length }; })();
+
 // rank by AI-Ready score and the 2027 KPI: share of subdomains with a BI partner at L3 or above
 SUBS.filter(d => d.level != null && d.ards.idx != null).sort((a, b) => b.ards.idx - a.ards.idx).forEach((d, k) => { d.aiRank = k + 1; });
 export const AI_RANKED = SUBS.filter(d => d.aiRank).length;
@@ -226,6 +310,9 @@ SUBS.forEach(d => { d.store = d.tb; });
 DOMS.forEach(u => { u.store = u.tb; });
 // weekly share of healthy objects (data/trend.js: [subdomain][dash, met, dm][week] = [healthy, total]); the object set is the current snapshot
 const TI = { dash: 0, met: 1, dm: 2 }, W = TREND_DATES.length;
+// the weekly snapshots are of the old health score; each series is scaled so its last week equals the current SLO health on Tier 0–2
+SUBS.forEach(d => TT.forEach(t => { const row = TREND[d.i][TI[t]], last = row[W - 1], n = d.t[t].length, g = d.t[t].filter(o => o.h).length;
+  if (!last[1]) return; const fg = last[0] ? g / last[0] : 0, fn = n / last[1]; TREND[d.i][TI[t]] = row.map(([a, b]) => [Math.min(Math.round(b * fn), Math.round(a * fg)), Math.round(b * fn)]); TREND[d.i][TI[t]][W - 1] = [g, n]; }));
 const share = rows => Array.from({ length: W }, (_, k) => { const g = rows.reduce((s, r) => s + r[k][0], 0), n = rows.reduce((s, r) => s + r[k][1], 0); return n ? g / n : null; });
 const trendOf = idx => ({ ...Object.fromEntries(TT.map(t => [t, share(idx.map(i => TREND[i][TI[t]]))])), all: share(idx.flatMap(i => TREND[i])) });
 SUBS.forEach(d => { d.trend = trendOf([d.i]); });
@@ -234,12 +321,9 @@ export const ALL_TREND = trendOf(SUBS.map(d => d.i));
 // weekly AI-Ready score trend — an estimate: components that depend on object health
 // (R1 trusted data marts, R3 trusted dashboards, R2 traffic through semantics) scale with the healthy share of their type; the rest stay as now
 export const IDX_BY = { R1: 'dm', R2: 'met', R3: 'dash' };
-SUBS.forEach(d => { const A = d.ards; if (!A || A.idx == null) { d.idxTrend = null; return; } const n = TREND_DATES.length;
-  d.idxTrend = Array.from({ length: n }, (_, w) => { const Rs = A.comp.filter(c => c.axis === 'R' && c.score != null);
-    const r = Rs.reduce((t, c) => { const tt = IDX_BY[c.key], now = d.trend[tt]?.[n - 1], then = d.trend[tt]?.[w]; const k = tt && now > 0 && then != null ? then / now : 1;
-      return t + c.wn * Math.min(100, c.score * k); }, 0);
-    return Math.round(Math.min(Math.round(r), A.O.v)); });
-  d.idxTrend[n - 1] = A.idx; });
+// weekly score trend — an estimate: the score moves with the healthy share of data marts (P0 1 needs healthy marts); other P0 stay as now
+SUBS.forEach(d => { const v = d.v4?.score; if (v == null) { d.idxTrend = null; return; } const n = TREND_DATES.length, tr = d.trend.dm, now = tr?.[n - 1];
+  d.idxTrend = Array.from({ length: n }, (_, w) => Math.round(Math.min(100, now > 0 && tr[w] != null ? v * tr[w] / now : v))); d.idxTrend[n - 1] = v; });
 export const ALL = agg(SUBS.flatMap(objsOf));
 export const COMPANY_ARDS = scoreArds(pool(SUBS.filter(d => d.ards), CPU_ALL, ALL));
 export const BY = Object.fromEntries(TT.map(t => [t, agg(SUBS.flatMap(d => d.t[t]))]));
@@ -251,11 +335,11 @@ DOMS.forEach(u => { u.incOpen = u.subs.flatMap(d => d.incOpen); u.fresh = [0, 1,
 
 // tasks with points; each has the product where it is done. Wording lives in skin.js
 // how much the AI-Ready score rises if a component takes a new fact: axis R is the unweighted mean attainment, the score is min(Result, Readiness)
-export function idxGain(d, patch) { const A = d.ards; if (!A || A.idx == null) return 0;
-  const cs = A.comp.filter(c => c.axis === 'R' && c.status !== 'none' && c.status !== 'tbd'); if (!cs.length) return 0;
-  const R = cs.reduce((t, c) => { const f = c.key in patch ? patch[c.key] : c.fact; return t + (f == null ? 0 : Math.min(100, f / c.target * 100)); }, 0) / cs.length;
-  return Math.max(0, Math.min(Math.round(R), A.O.v ?? 0) - A.idx); }
-const factOf = (d, k) => d.ards?.comp.find(c => c.key === k)?.fact ?? 0;
+// under the 2027 method a task moves a P0 fact; the gain is the change of min over P0 in the minimum
+const K4 = { R1: 'mart', R2: 'sem', R3: 'rep' };
+export function idxGain(d, patch) { if (!d.v4 || d.v4.score == null) return 0; const p = {}; Object.entries(patch).forEach(([k, v]) => { p[K4[k] || k] = v; });
+  return Math.max(0, (score4(d, p).score ?? 0) - d.v4.score); }
+const factOf = (d, k) => d.v4?.p0.find(c => c.key === (K4[k] || k))?.fact ?? 0;
 // a task lifts its component: metrics — R2, data marts and monitoring — R1, dashboards — R3; the rest does not move the score
 const lift = (d, k, f) => idxGain(d, { [k]: Math.min(1, f(factOf(d, k))) });
 export function tasks(d) {
@@ -266,7 +350,7 @@ export function tasks(d) {
   if (!has(d, 'cur') && d.by.met.n) T.push([...X.cur(d), 0, go('semantic')]);
   if (!has(d, 'ai')) T.push([...X.ai(d), 0, go('registry')]);
   if (!d.skill) T.push([...X.skill(d), 0, go('git', kbRepo(d) || PRODUCTS.git.url)]);
-  if (bad('met')) T.push([...X.met(bad('met')), lift(d, 'R2', () => 1), go('semantic')]);
+  if (bad('met')) T.push([...X.met(bad('met')), lift(d, 'R2', v => v + (1 - v) * 0.5), go('semantic')]);
   if (bad('dm')) T.push([...X.dm(bad('dm')), lift(d, 'R1', v => v + (1 - v) * 0.5), go('catalog')]);
   if (bad('dash')) T.push([...X.dash(bad('dash')), lift(d, 'R3', v => v + (1 - v) * 0.5), go('dashboards')]);
   if (d.skill && d.t2s < 10) T.push([...X.t2s(d), 0, go('kb')]);
@@ -312,6 +396,19 @@ export function savings(d) {
   return { cpu: cpuDm + cpuMet, cpuDm, cpuMet, groups: G, total: G.reduce((s, g) => s + g.sav, 0) };
 }
 
+// ---------- lineage for the three signals: sources of an object, root of a breach, certified lineage ----------
+const SRC = new Map(); const addSrc = (b, a) => { (SRC.get(b) || SRC.set(b, []).get(b)).push(a); };
+for (let i = 0; i < G_DD.length; i += 2) addSrc(G_DD[i + 1], G_DD[i]);
+for (let i = 0; i < G_DM.length; i += 3) addSrc(G_DM[i + 1], G_DM[i]);
+export const srcOf = o => (SRC.get(o.k) || []).map(k => OBJ_BY_K[k]).filter(x => x && x.tier < 3);
+// root of a breach caused by a source: walk up the lineage to the deepest unhealthy source
+export function rootOf(o) { let cur = o, seen = new Set([o.k]);
+  for (let step = 0; step < 6; step++) { const bad = srcOf(cur).filter(x => !x.h && !seen.has(x.k)).sort((a, b) => a.slo - b.slo)[0]; if (!bad) break; seen.add(bad.k); cur = bad; }
+  return cur === o ? null : cur; }
+// certified lineage: share of views of certified dashboards whose every source data mart is certified too
+export function certLineage(dash) { const c = dash.filter(o => o.ce), v = c.reduce((t, o) => t + o.pop, 0);
+  return v ? c.filter(o => srcOf(o).every(x => x.ce)).reduce((t, o) => t + o.pop, 0) / v : null; }
+
 // ---------- data exchange between domains: who reads whose data marts ----------
 // data mart of domain A → dashboard of domain B (weight — dashboard views) and data mart A → data mart B (dependencies of critical data marts, weight 1)
 export const DFLOW = (() => { const F = new Map(), dom = k => SUBS[OBJECTS[k][1]]?.l1;
@@ -346,7 +443,11 @@ export const DOMV = DOMS.map((u, k) => { const subs = u.subs, sum = f => subs.re
     t: { dm: subs.flatMap(d => d.t.dm), met: subs.flatMap(d => d.t.met), dash: subs.flatMap(d => d.t.dash) },
     people: Object.fromEntries(['st', 'bp', 'cur', 'ai'].map(r => [r, roleSum(subs, r)]).filter(([, v]) => v)) };
   Object.assign(D, { cpu: u.cpu, tb: u.tb, store: u.store, trend: u.trend, ud: u.ud, ud30: u.ud30, pts: u.pts, pts30: u.pts30, ptsToday: u.ptsToday });
-  derive(D); levelUp(D); D.mood = null;
+  derive(D); levelUp(D); apply4(D); D.mood = null;
+  // a domain under the 2027 method: score = mean score of its subdomains, level = median level of its subdomains; P0 facts and drivers stay pooled
+  { const xs = subs.filter(d => d.v4?.score != null), ls = subs.filter(d => d.level != null).map(d => d.level).sort((a, b) => a - b);
+    D.v4.score = xs.length ? Math.round(xs.reduce((t, d) => t + d.v4.score, 0) / xs.length) : null; D.v4.above = xs.filter(d => d.v4.score > 90).length; D.v4.scored = xs.length;
+    D.ards.idx = D.v4.score; if (ls.length) { D.level = ls[(ls.length - 1) >> 1]; D.next = D.level < 4 ? D.v4.rules[D.level].filter(r => !r.ok) : []; } }
   u.view = D; u.ards = D.ards; u.aiIdx = D.ards.idx; u.comp = D.ards.comp; u.level = D.level; return D; });
 // domain rank by score among domains that have a level
 DOMV.filter(D => D.level != null && D.ards.idx != null).sort((a, b) => b.ards.idx - a.ards.idx).forEach((D, k) => { D.aiRank = k + 1; });

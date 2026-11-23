@@ -1,5 +1,6 @@
 import { SUBS, DOMS, ALL, BY, ALL_TREND, TREND_DATES, SNAPSHOT, INFRA_PERIOD, AIR_MAX, CPU_ALL, RANKED_N, fmtK, fmtStore, ROLES, has, who, ok, fmt, pct, cls, igsCls, hash, KIND1, UNIT, isHot, objsOf, tasks, checks, TOOL, PRODUCTS, fixLink, kbRepo,
-  OPS, OPS_DATE, INC_DATE, LEVEL_NAMES, CAMPAIGN, ARDS_URL, WIP, MOCK_O, AI_KPI, AI_RANKED, ARDS, CODE, COMPANY_ARDS, DOMV, PTS_NOTE, TBD, NOMS, NOM_MONTH, FRESH, freshOf, monOf, isOpen, IMP_LABEL, savings, useOf, SUBX, qOf, DFLOW, idxGain } from './model.js?v=100';
+  OPS, OPS_DATE, INC_DATE, LEVEL_NAMES, CAMPAIGN, ARDS_URL, WIP, MOCK_O, AI_KPI, AI_RANKED, ARDS, CODE, COMPANY_ARDS, DOMV, PTS_NOTE, TBD, NOMS, NOM_MONTH, FRESH, freshOf, monOf, isOpen, IMP_LABEL, savings, useOf, SUBX, qOf, DFLOW, idxGain, TT,
+  P0, P0_READY, FUNC, score4, drivers, counters, TIER, CAUSE, CERT, ADM_CRIT, SANDBOX, SLO_MIN, GOLD_MIN, GOLD_TH, HELD_MIN, V4_YEAR, WINDOW, READY, ADM_L1, rootOf, srcOf, certLineage, ansOf, KIND } from './model.js?v=100';
 import { CHECKS, checksReal } from './products.js?v=100';
 import { runAgent } from './agent.js?v=100';
 import { ECON } from './econ.js?v=100';
@@ -73,7 +74,11 @@ const evKpi = subs => { const a = evAgg(subs); return `<div class="kpi"><span>Ev
 // metric definitions: shown on hover over the name (data-def)
 const ARDS_DEF = Object.fromEntries(ARDS.map(([k, , w, name, target, how, src]) => [k, `${CODE[k]} ${name}: ${how}. Target: ${target == null ? 'subdomain median, lower is better; attainment = min(100%, plan / actual)' : Math.round(target * 100) + '%, attainment = min(100%, actual / target)'}. An axis is the unweighted mean attainment of its components. Source: ${src}.`]));
 const DEFS = [
-  ['AI-Ready score', 'AI-Ready Domains Score 2027: min(axis 1, axis 2) from 0 to 100. Axis 1 is data and role readiness (1.1–1.4), axis 2 is the result of the AI assistant (2.1–2.4). Domains and the company are scored on pooled objects. 2.1 and 2.2 are generated in this demo.'],
+  ['AI-Ready score', 'AI-Ready Domains Score 2027: minimum attainment of the P0 metrics in the minimum over 28 days, 0 to 100: consumption of AI-ready data marts, measures covered by healthy metrics, correct answers on the golden set. A domain score is the mean of its subdomains.'],
+  ['Function goal', 'Mean AI-Ready score of subdomains. Next to it, the number of subdomains with a score above 90. The year result is the mean of the three Q4 windows.'],
+  ['Healthy by SLO', 'Share of Tier 0–2 objects that met their SLO on enough days of the last 28: 27 for Tier 0, 26 for Tier 1, 24 for Tier 2. An object without telemetry is not healthy.'],
+  ['Pass admission', 'Share of Tier 0–2 objects that meet every static admission criterion of their type.'],
+  ['SLO breaches', 'Tier 0–2 objects below their SLO. Each breach has a cause: the object, a source, or the platform.'],
   ['Domain AI readiness', '2027 KPI from the AI-Ready Domains Score: share of subdomains with a BI partner at level L3 or higher (readiness ≥ 70, answer quality 2.1 ≥ 70%, 2.3 self-service analytics with AI ≥ 30%). Goal: 75%.'],
   ['Score min(axis 1, axis 2)', 'Final AI-Ready score of a subdomain: the lower of axis 1 Readiness and axis 2 Result. High readiness without results (or the reverse) does not raise the score.'],
   ['Axis 1 · Readiness', 'AI-Ready axis 1: unweighted mean attainment of 1.1–1.4: trusted data marts, traffic through trusted semantics, trusted dashboards, domain knowledge (logic to be defined). The BI partner and data owner roles are a condition for leaving L0 and are not part of the axis.'],
@@ -144,6 +149,7 @@ const ico = d => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" st
 const IC = { home: ico('<path d="M2.5 7 8 2.5 13.5 7v6.5h-11z"/><path d="M6.5 13.5v-3.5h3v3.5"/>'), world: ico('<circle cx="8" cy="8" r="5.8"/><path d="M2.2 8h11.6M8 2.2c1.8 1.6 2.6 3.6 2.6 5.8S9.8 12.2 8 13.8C6.2 12.2 5.4 10.2 5.4 8S6.2 3.8 8 2.2"/>'),
   alert: ico('<path d="M8 2.2 14 13H2z"/><path d="M8 6.5v3M8 11.3v.1"/>'), me: ico('<circle cx="8" cy="5.5" r="2.7"/><path d="M2.8 13.6c.7-2.4 2.7-3.7 5.2-3.7s4.5 1.3 5.2 3.7"/>'), mail: ico('<rect x="2" y="3.5" width="12" height="9" rx="1.5"/><path d="m2.5 4.5 5.5 4 5.5-4"/>'),
   onb: ico('<path d="M3 13.5V4.5l5-2.5 5 2.5v9"/><path d="M6 13.5v-4h4v4M3 13.5h10"/>'),
+  adm: ico('<rect x="2.5" y="3.5" width="11" height="9" rx="1.5"/><path d="M5 7h4M5 9.5h6"/><circle cx="11" cy="6.8" r=".6"/>'), cert: ico('<path d="M2.5 5.5 5 8l3-4.5L11 8l2.5-2.5-1 6.5h-9z"/>'), ans: ico('<path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z"/><path d="M5.5 6.3h5M5.5 8.2h3"/>'),
   game: ico('<path d="M4.6 4.5h6.8a3 3 0 0 1 2.9 2.3l.8 3.6a1.6 1.6 0 0 1-2.8 1.3L10.7 10H5.3l-1.6 1.7A1.6 1.6 0 0 1 .9 10.4l.8-3.6a3 3 0 0 1 2.9-2.3z"/><path d="M5 6.4v2M4 7.4h2"/><circle cx="10.6" cy="6.9" r=".5"/><circle cx="11.8" cy="8.1" r=".5"/>') };
 // game layer: monthly awards; game color and icon shared with links to the 3D world
 const nomsBoard = () => `<div class="sec game"><h2>${IC.game}${S.game.title}</h2><span>awards · ${NOM_MONTH} · <a href="${S.game.home}">${S.game.nav} →</a></span></div>
@@ -178,7 +184,9 @@ function econOverview() {
     </div>`; }
 function navHtml(r) {
   const cur = k => (r.page === k ? 'aria-current="page"' : '');
-  $('nav').innerHTML = `<a href="#/" ${cur('home')}>${IC.home}Overview</a><a class="gm" href="${S.game.home}">${IC.game}${S.game.nav}<em>3D</em></a><a href="#/hot" ${cur('hot')}>${IC.alert}Issues<em>${fmt(ALL.hot)}</em></a><a href="#/me" ${cur('me')}>${IC.me}${S.me.nav}<em>${MINE.length}</em></a>${MINE.length ? `<a href="#/digest" ${cur('digest')}>${IC.mail}Digest<em>week</em></a>` : ''}<a href="#/onboarding" ${cur('onb')}>${IC.onb}Onboarding</a>`;
+  const breaches = SUBS.flatMap(objsOf).filter(o => !o.h && o.slo != null).length, admN = SUBS.flatMap(objsOf).filter(o => !o.ad).length, certN = SUBS.flatMap(objsOf).filter(o => o.cert === 1 || o.cert === 3 || o.cert === 4).length;
+  $('nav').innerHTML = `<a href="#/" ${cur('home')}>${IC.home}AI readiness<em>${FUNC.mean}</em></a><a class="gm" href="${S.game.home}">${IC.game}${S.game.nav}<em>3D</em></a>
+    <a href="#/health" ${cur('health')}>${IC.alert}Health<em>${fmt(breaches)}</em></a><a href="#/adm" ${cur('adm')}>${IC.adm}Admission<em>${fmt(admN)}</em></a><a href="#/cert" ${cur('cert')}>${IC.cert}Certification<em>${fmt(certN)}</em></a><a href="#/ans" ${cur('ans')}>${IC.ans}Answers</a><a href="#/me" ${cur('me')}>${IC.me}${S.me.nav}<em>${MINE.length}</em></a>${MINE.length ? `<a href="#/digest" ${cur('digest')}>${IC.mail}Digest<em>week</em></a>` : ''}<a href="#/onboarding" ${cur('onb')}>${IC.onb}Onboarding</a>`;
   $('navh').innerHTML = `${S.l1.many}<a class="newd" href="#/new" title="Create a domain">+ Create</a>`;
   $('navd').innerHTML = DOMS.filter(u => u.all.n).map(u => `<a href="#/d/${enc(u.name)}" ${(r.dom === u || r.sub?.l1 === u.name) ? 'aria-current="page"' : ''}><span class="dot ${cls(u.share)}"></span>${u.name}<em>${u.subs.length}</em></a>`).join('');
   $('foot').innerHTML = `Health score snapshot ${dd(SNAPSHOT)}, ${SNAPSHOT.slice(0, 4)}${S.spec ? `<br><a href="${S.spec}" target="_blank" rel="noopener">Spec and blocks ↗</a><br><a href="doc.html?f=refs" target="_blank" rel="noopener">Market references ↗</a>` : ''}`;
@@ -237,25 +245,28 @@ function pageHome() {
 }
 // bubble chart R vs O: score = min(axis 1, axis 2), so below the diagonal the result limits it, above it readiness does
 // focus is the subdomain being compared: highlighted and labeled, its domain's subdomains brighter, others dimmed
-function roChart(list, focus = null) { const pts = list.filter(d => d.ards?.R.v != null && d.ards?.O.v != null && d.all.n);
+// x: the weaker of P0 data marts and semantic coverage (attainment), y: golden set attainment
+const px4 = d => { const P = d.v4?.p0; if (!P) return null; const a = P[0].none ? null : P[0].att, b = P[1].att; return a == null && b == null ? null : Math.round(Math.min(a ?? 100, b ?? 100)); };
+const py4 = d => d.v4?.p0[2].fact == null || !d.v4.p0[2].n ? null : Math.round(d.v4.p0[2].fact * 100);
+function roChart(list, focus = null) { const pts = list.filter(d => px4(d) != null && py4(d) != null && d.all.n);
   if (!pts.length) return ''; const W = 1000, H = 400, L = 46, Rt = 20, T = 14, B = 40, X = v => L + v / 100 * (W - L - Rt), Y = v => H - B - v / 100 * (H - T - B);
   const mx = Math.max(...pts.map(d => d.ud30 || 0), 1), rad = d => 4 + 26 * Math.sqrt((d.ud30 || 0) / mx), col = ['var(--lv0)', 'var(--lv1)', 'var(--lv2)', 'var(--lv3)', 'var(--lv4)'];
   const ticks = [0, 20, 40, 60, 80, 100], placed = [];
   const fo = focus && pts.includes(focus) ? focus : null, op = d => !fo || d === fo ? '' : d.l1 === fo.l1 ? ' style="fill-opacity:.55"' : ' style="fill-opacity:.16"';
-  if (fo) { const x = X(fo.ards.R.v), y = Y(fo.ards.O.v) - rad(fo) - 4, w = fo.l2.length * 6.4; placed.push([x - w / 2, y - 12, x + w / 2, y]); }
-  const labels = [...pts].sort((a, b) => (b.ud30 || 0) - (a.ud30 || 0)).filter(d => !fo || d.l1 === fo.l1 && d !== fo).slice(0, 14).map(d => { const x = X(d.ards.R.v), y = Y(d.ards.O.v) - rad(d) - 4, w = d.l2.length * 6.4, r = [x - w / 2, y - 12, x + w / 2, y];
+  if (fo) { const x = X(px4(fo)), y = Y(py4(fo)) - rad(fo) - 4, w = fo.l2.length * 6.4; placed.push([x - w / 2, y - 12, x + w / 2, y]); }
+  const labels = [...pts].sort((a, b) => (b.ud30 || 0) - (a.ud30 || 0)).filter(d => !fo || d.l1 === fo.l1 && d !== fo).slice(0, 14).map(d => { const x = X(px4(d)), y = Y(py4(d)) - rad(d) - 4, w = d.l2.length * 6.4, r = [x - w / 2, y - 12, x + w / 2, y];
     if (placed.some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1])) return ''; placed.push(r); return `<text x="${x}" y="${y}" class="bl">${d.l2}</text>`; }).join('');
-  return `<div class="card rochart"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Axis 1 readiness against axis 2 result by subdomain">
+  return `<div class="card rochart"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Prerequisites against golden set answers by subdomain">
     ${ticks.map(t => `<line x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H - B}" class="g"/><line x1="${L}" x2="${W - Rt}" y1="${Y(t)}" y2="${Y(t)}" class="g"/><text x="${X(t)}" y="${H - B + 16}" class="tk" text-anchor="middle">${t}</text><text x="${L - 8}" y="${Y(t) + 4}" class="tk" text-anchor="end">${t}</text>`).join('')}
-    <line x1="${X(0)}" y1="${Y(0)}" x2="${X(100)}" y2="${Y(100)}" class="dg"/>
-    <text x="${X(96)}" y="${Y(10)}" class="zn" text-anchor="end">axis 2 lags axis 1</text><text x="${X(4)}" y="${Y(92)}" class="zn">axis 1 lags axis 2</text>
-    <text x="${(L + W - Rt) / 2}" y="${H - 6}" class="ax" text-anchor="middle">Axis 1 · Readiness →</text><text x="12" y="${(T + H - B) / 2}" class="ax" text-anchor="middle" transform="rotate(-90 12 ${(T + H - B) / 2})">Axis 2 · Result →</text>
-    ${[...pts].sort((a, b) => (b.ud30 || 0) - (a.ud30 || 0)).map(d => { const c = `<circle cx="${X(d.ards.R.v)}" cy="${Y(d.ards.O.v)}" r="${rad(d)}" fill="${col[d.level ?? 0]}" class="bb${d === fo ? ' fo' : ''}${fo ? ' nt' : ''}"${op(d)}`;
+    <line x1="${X(0)}" y1="${Y(GOLD_TH[0].v * 100)}" x2="${X(100)}" y2="${Y(GOLD_TH[0].v * 100)}" class="dg"/>
+    <text x="${X(1)}" y="${Y(GOLD_TH[0].v * 100) - 6}" class="zn">golden set threshold ${Math.round(GOLD_TH[0].v * 100)}%</text>
+    <text x="${(L + W - Rt) / 2}" y="${H - 6}" class="ax" text-anchor="middle">Prerequisites: the weaker of AI-ready data marts and semantic coverage, attained →</text><text x="12" y="${(T + H - B) / 2}" class="ax" text-anchor="middle" transform="rotate(-90 12 ${(T + H - B) / 2})">Golden set, correct answers % →</text>
+    ${[...pts].sort((a, b) => (b.ud30 || 0) - (a.ud30 || 0)).map(d => { const c = `<circle cx="${X(px4(d))}" cy="${Y(py4(d))}" r="${rad(d)}" fill="${col[d.level ?? 0]}" class="bb${d === fo ? ' fo' : ''}${fo ? ' nt' : ''}"${op(d)}`;
       // in compare mode a bubble does not open the cabinet, it shows a tooltip
-      return fo ? `${c} data-tip="${enc(JSON.stringify([d.l2, d.l1, d.ards.R.v, d.ards.O.v, d.ards.idx, LEVEL_NAMES[d.level ?? 0], fmtK(d.ud30 || 0), d.aiRank || null]))}"/>`
-        : `<a href="#/s/${d.i}">${c}><title>${d.l2} (${d.l1}) · axis 1 readiness ${d.ards.R.v}, axis 2 result ${d.ards.O.v}, score ${d.ards.idx} · ${LEVEL_NAMES[d.level ?? 0]} · usage ${fmtK(d.ud30 || 0)}</title></circle></a>`; }).join('')}
-    ${labels}${fo ? `<text x="${X(fo.ards.R.v)}" y="${Y(fo.ards.O.v) - rad(fo) - 4}" class="bl fo">${fo.l2} · ${fo.ards.idx}</text>` : ''}</svg>
-    ${fo ? '<div class="rotip" hidden></div>' : ''}<div class="rolg">${LEVEL_NAMES.map((n, i) => `<span><i style="background:${col[i]}"></i>${n}</span>`).join('')}<span class="mut">${fo ? `${fo.l2} highlighted, ${fo.l1} subdomains brighter; ` : ''}diagonal: axis 1 = axis 2; the score equals the lower axis</span></div></div>`; }
+      return fo ? `${c} data-tip="${enc(JSON.stringify([d.l2, d.l1, px4(d), py4(d), d.ards.idx, LEVEL_NAMES[d.level ?? 0], fmtK(d.ud30 || 0), d.aiRank || null]))}"/>`
+        : `<a href="#/s/${d.i}">${c}><title>${d.l2} (${d.l1}) · prerequisites ${px4(d)}, golden set ${py4(d)}, score ${d.ards.idx} · ${LEVEL_NAMES[d.level ?? 0]} · usage ${fmtK(d.ud30 || 0)}</title></circle></a>`; }).join('')}
+    ${labels}${fo ? `<text x="${X(px4(fo))}" y="${Y(py4(fo)) - rad(fo) - 4}" class="bl fo">${fo.l2} · ${fo.ards.idx}</text>` : ''}</svg>
+    ${fo ? '<div class="rotip" hidden></div>' : ''}<div class="rolg">${LEVEL_NAMES.map((n, i) => `<span><i style="background:${col[i]}"></i>${n}</span>`).join('')}<span class="mut">${fo ? `${fo.l2} highlighted, ${fo.l1} subdomains brighter; ` : ''}subdomains without a golden set of 50+ questions are not shown; the score is at most the lower of the two attainments</span></div></div>`; }
 const p0 = v => v == null ? '—' : Math.round(v * 100) + '%';
 // distribution of AI-Ready levels; L2–L4 depend on the result axis, generated for the demo
 function levelDist(list) { const live = list.filter(d => d.level != null), c = LEVEL_NAMES.map((_, i) => live.filter(d => d.level === i).length);
@@ -272,7 +283,7 @@ function pageHot(r) {
   // issue weight: downstream consumers if lineage is known, otherwise views normalized by type
   const w = o => downN(o) * 1000 + o.pop / (o.t === 'dash' ? 4 : 1);
   const list = SUBS.filter(d => (!dom || d.l1 === dom) && (!mine || MINE.includes(d))).flatMap(d => d.hotList).filter(o => t === 'all' || o.t === t).sort((a, b) => w(b) - w(a));
-  return topHtml('<a href="#/">Overview</a> / <b>Issues</b>') + `<div class="page"><div class="hrow"><div class="grow"><h1>Issues</h1><p class="sub">Popular objects that fail the health score. Sorted by downstream consumers first, then by views.</p></div></div>
+  return topHtml('<a href="#/">AI readiness</a> / <b>Issues</b>') + `<div class="page"><div class="hrow"><div class="grow"><h1>Issues</h1><p class="sub">Popular objects that fail the health score. Sorted by downstream consumers first, then by views.</p></div></div>
     <div class="filters">${[['all', 'All'], ['met', 'Metrics'], ['dm', 'Data marts'], ['dash', 'Dashboards']].map(([k, l]) => `<button data-hot="${k}" aria-pressed="${t === k}">${l}</button>`).join('')}
       <button data-mine="${mine ? '' : '1'}" aria-pressed="${mine}">${S.me.nav}</button>
       <select id="hd"><option value="">All ${S.l1.gen}</option>${DOMS.filter(u => u.all.hot).map(u => `<option ${u.name === dom ? 'selected' : ''}>${u.name}</option>`).join('')}</select>
@@ -290,6 +301,7 @@ const GI = { crown: '<path d="M2.5 5.5 5 8l3-4.5L11 8l2.5-2.5-1 6.5h-9z"/>', ok:
 const gIco = (k, sz = 14) => `<svg width="${sz}" height="${sz}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${GI[k]}</svg>`;
 // object certification (crown): in the demo it toggles in page memory; in production it would be a request written to the Data Catalog
 // short headers for check columns by check key; the full name is in the tooltip
+const ADM_SHORT = { owner: 'Owner', description: 'Desc.', domain: 'Domain', 'BI partner': 'BI p.', Trino: 'Trino', 'unique key': 'Key', '30% of columns described': 'Columns', 'no deprecated sources': 'Sources', schedule: 'Sched.', 'no temp schemas': 'No temp', 'no public schemas': 'No pub.', 'no duplicates': 'No dup.', curator: 'Curator', 'live sources': 'Sources', README: 'README', 'built on datasets or metrics': 'Datasets' };
 const CC_SHORT = { dscert: 'Cert. datasets', docs: 'README', engine: 'Engine', owner: 'Owner', cols: 'Columns', upstream: 'Sources', dataset: 'Datasets', usage: 'Usage', chk: 'Column checks', chkok: 'No failures', cpu: 'CPU', size: 'Size', ttl: 'TTL', bp: 'BI partner' };
 const isCertO = o => o.s === 1 || o.s === 3, CERT_LOG = [];
 const certBtn = (o, short = false) => { const on = isCertO(o); return `<button class="crownb${on ? ' on' : ''}" data-cert="${o.sub}:${o.t}:${o.name}" title="${on ? 'remove certification' : 'certify'}">${gIco('crown', 14)}${short ? '' : `<span>${on ? 'Certified' : 'Certify'}</span>`}</button>`; };
@@ -297,7 +309,7 @@ const certBtn = (o, short = false) => { const on = isCertO(o); return `<button c
 document.addEventListener('mousemove', e => { const c = e.target.closest?.('.rochart [data-tip]'), card = e.target.closest?.('.rochart'), tip = card?.querySelector('.rotip');
   document.querySelectorAll('.rotip').forEach(t => { if (t !== tip || !c) t.hidden = true; });
   if (!c || !tip) return; const [l2, l1, r, o, idx, lv, use, rk] = JSON.parse(decodeURIComponent(c.dataset.tip)), b = card.getBoundingClientRect();
-  tip.innerHTML = `<b>${l2}</b><small>${l1} · ${lv}${rk ? ` · rank ${rk} of ${AI_RANKED}` : ''}</small><div><span>Score</span><em>${idx}</em><span>Axis 1 · Readiness</span><em>${r}</em><span>Axis 2 · Result</span><em>${o}</em><span>Usage, 30 days</span><em>${use}</em></div>`;
+  tip.innerHTML = `<b>${l2}</b><small>${l1} · ${lv}${rk ? ` · rank ${rk} of ${AI_RANKED}` : ''}</small><div><span>Score</span><em>${idx}</em><span>Prerequisites</span><em>${r}</em><span>Golden set</span><em>${o}</em><span>Usage, 30 days</span><em>${use}</em></div>`;
   tip.hidden = false; const x = e.clientX - b.left + 14, y = e.clientY - b.top + 14; tip.style.left = Math.min(x, b.width - tip.offsetWidth - 8) + 'px'; tip.style.top = Math.min(y, b.height - tip.offsetHeight - 8) + 'px'; });
 // demo links to tools that do not exist in the open version: stay on the page
 document.addEventListener('click', e => { if (e.target.closest('a[data-demo]')) e.preventDefault(); }, true);
@@ -307,10 +319,11 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-cert
   const [i, t, ...n] = b.dataset.cert.split(':'), o = SUBS[+i].t[t].find(x => x.name === n.join(':')); if (!o) return;
   o.s ^= 1; CERT_LOG.unshift({ o, on: isCertO(o), at: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) });
   const reopen = drawer.classList.contains('open') && $('dh').querySelector('h2')?.textContent === o.name; route(); if (reopen) openObj(o); }, true);
-const gov = o => { const cert = o.s & 1, ok = o.s >= 2, f = freshOf(o);
+const gov = o => sigs(o);
+const govOld = o => { const cert = o.s & 1, ok = o.s >= 2, f = freshOf(o);
   return `<span style="display:inline-flex;gap:6px;align-items:center" title="${st(o)}"><button class="gv gvb${cert ? ' key' : ''}" data-cert="${o.sub}:${o.t}:${o.name}" title="${cert ? 'certified, click to remove' : 'not certified, click to certify'}">${gIco('crown')}</button><i class="gv ${ok ? 'ok' : 'warn'}" title="${ok ? 'healthy' : 'unhealthy'}">${gIco(ok ? 'ok' : 'warn')}</i>${f == null || f === 3 ? '' : `<span class="gvt ${f ? (f === 1 ? 'warn' : 'bad') : ''}">${gIco('sync', 12)}${FRESH[f]}</span>`}</span>`; };
 function objTable(list, withSub) {
-  return `<div class="card tw"><table class="tbl fixed"><colgroup><col style="width:34px"><col>${withSub ? '<col style="width:22%">' : ''}<col style="width:190px"><col style="width:110px"></colgroup><thead><tr><th></th><th>Object</th>${withSub ? `<th>${S.l2.one}</th>` : ''}<th>Governance</th><th class="num">Views</th></tr></thead><tbody>
+  return `<div class="card tw"><table class="tbl fixed"><colgroup><col style="width:34px"><col>${withSub ? '<col style="width:22%">' : ''}<col style="width:190px"><col style="width:110px"></colgroup><thead><tr><th></th><th>Object</th>${withSub ? `<th>${S.l2.one}</th>` : ''}<th>Signals</th><th class="num">Views</th></tr></thead><tbody>
     ${list.map(o => `<tr data-o="${o.sub}:${o.t}:${o.name}"><td><span class="dot ${sdot(o)}"></span></td><td class="nm" title="${o.name}">${o.name}<small>${KIND1[o.t]}${isHot(o) ? ', issue' : ''}</small></td>${withSub ? `<td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${SUBS[o.sub].l2}<small class="s">${SUBS[o.sub].l1}</small></td>` : ''}<td>${gov(o)}</td><td class="num">${fmt(o.pop)}</td></tr>`).join('') || '<tr><td colspan="5" style="color:var(--ink3)">no objects</td></tr>'}
   </tbody></table></div>`;
 }
@@ -318,25 +331,29 @@ function objTable(list, withSub) {
 // ---------- my objects ----------
 function pageMe() {
   const role = d => ROLES.filter(([k]) => d.people[k]?.l === ME).map(([, t]) => t.toLowerCase()).join(', ');
-  return topHtml(`<a href="#/">Overview</a> / <b>${S.me.title}</b>`) + `<div class="page"><div class="hrow"><div class="grow"><h1>${S.me.title}</h1><p class="sub">${S.l2.many} where the Domain Registry lists you as ${S.roleList}.</p></div>${MINE.length ? '<a class="btn" href="#/digest">Weekly digest<small>preview</small></a>' : ''}</div>
+  return topHtml(`<a href="#/">AI readiness</a> / <b>${S.me.title}</b>`) + `<div class="page"><div class="hrow"><div class="grow"><h1>${S.me.title}</h1><p class="sub">${S.l2.many} where the Domain Registry lists you as ${S.roleList}.</p></div>${MINE.length ? '<a class="btn" href="#/digest">Weekly digest<small>preview</small></a>' : ''}</div>
     ${MINE.length ? `<div class="card tw" style="margin-bottom:16px"><table class="tbl"><thead><tr><th>${S.l2.one}</th><th>Role</th><th>${S.health.name}</th><th>Level</th><th class="num">Issues</th><th class="num">Late</th><th class="num">Incidents</th><th>Top action</th></tr></thead><tbody>
       ${MINE.map(d => `<tr onclick="location.hash='#/s/${d.i}'"><td class="nm">${d.l2}<small>${d.l1}</small></td><td>${role(d)}</td><td>${hb(d.all)}${dyn(d.trend.all)}</td><td>${lvl(d)}</td><td class="num">${d.all.hot}</td><td class="num">${d.fresh[1] + d.fresh[2]}</td><td class="num">${d.incOpen.length}</td><td>${mainAction(d)?.[0] || '—'}</td></tr>`).join('')}</tbody></table></div>
     <div class="gcards">${MINE.map(d => subCard(d, role(d))).join('')}</div>` : `<div class="gap">${S.me.empty}</div>`}</div>`;
 }
 // top action of the week: open high-severity incidents → next-level rule → issues
 function actions(d) {
-  const A = [], hi = d.incOpen.filter(r => r.x[1] >= 2), T = tasks(d);
-  if (hi.length) A.push([`Assign triage of ${hi.length} high-severity ${plural(hi.length, 'incident', 'incidents')}`, `${hi[0].o.name}${hi.length > 1 ? ' and others' : ''}`, 0]);
-  d.next.filter(r => !r.wip).forEach(r => A.push([`For ${LEVEL_NAMES[d.level + 1]}: ${r.name[0].toLowerCase() + r.name.slice(1)}`, `now ${r.now}`, 0]));
+  // order: objects about to lose publication → overdue certification decisions → own SLO breaches on Tier 0–1 → next level → tasks
+  const A = [], all = objsOf(d), T = tasks(d), due = all.filter(o => !o.ad && o.admLeft >= 0 && o.admLeft <= 3), over = all.filter(o => (o.cert === 1 && o.certDays > 14) || (o.cert === 3 && o.certDays > 21) || o.cert === 4),
+    br = all.filter(o => !o.h && o.slo != null && o.cause === 1 && o.tier <= 1);
+  if (due.length) A.push([`Fix admission of ${due.length} ${plural(due.length, 'object', 'objects')} before unpublishing`, `${due[0].name}${due.length > 1 ? ' and others' : ''}: ${due[0].admFail.join(', ')}`, 0, `#/adm?s=${d.i}&due=1`]);
+  if (over.length) A.push([`Decide on ${over.length} overdue ${plural(over.length, 'certification', 'certifications')}`, `${over[0].name}: ${CERT[over[0].cert]}`, 0, `#/cert?s=${d.i}`]);
+  if (br.length) A.push([`Fix ${br.length} SLO ${plural(br.length, 'breach', 'breaches')} on Tier 0–1`, `${br[0].name}: ${br[0].slo} of ${WINDOW} days`, 0, `#/health?s=${d.i}&c=1`]);
+  d.next.forEach(r => A.push([`For ${LEVEL_NAMES[d.level + 1]}: ${r.name[0].toLowerCase() + r.name.slice(1)}`, `now ${r.now}`, 0]));
   T.filter(t => !/incident/i.test(t[0])).forEach(t => A.push([t[0], t[1], t[2]]));
   return A; }
 const mainAction = d => actions(d)[0];
 function pageDigest() {
   const list = MINE.length ? MINE : [];
-  return topHtml(`<a href="#/">Overview</a> / <a href="#/me">${S.me.title}</a> / <b>Digest</b>`) + `<div class="page"><div class="hrow"><div class="grow"><h1>Weekly digest</h1><p class="sub">How the Monday message in Chat will look. This is a preview: the portal sends nothing. Rule: no more than three actions, only status changes and the week's results.</p></div></div>
+  return topHtml(`<a href="#/">AI readiness</a> / <a href="#/me">${S.me.title}</a> / <b>Digest</b>`) + `<div class="page"><div class="hrow"><div class="grow"><h1>Weekly digest</h1><p class="sub">How the Monday message in Chat will look. This is a preview: the portal sends nothing. Rule: no more than three actions, taken from the same queues as Health, Admission and Certification.</p></div></div>
     <div class="card mmsg"><div class="mmh"><i>${S.logo}</i><div><b>${S.brand}</b> <span>Monday, 10:00 AM</span><div>Your ${S.l2.many.toLowerCase()} for the week to ${dd(OPS_DATE)}</div></div></div>
-      <table class="tbl"><thead><tr><th>${S.l2.one}</th><th>${S.health.name}</th><th>Level</th><th>Top action</th></tr></thead><tbody>
-      ${list.map(d => `<tr><td class="nm">${d.l2}<small>${d.l1}</small></td><td>${p0(d.share)} ${dyn(d.trend.all)}</td><td>${lvl(d)}</td><td>${mainAction(d)?.[0] || 'all good'}</td></tr>`).join('') || '<tr><td colspan="4">no subdomains</td></tr>'}</tbody></table>
+      <table class="tbl"><thead><tr><th>${S.l2.one}</th><th class="num">Score</th><th>Level</th><th class="num">SLO breaches</th><th class="num">Unpublish in 3 d</th><th class="num">Cert. decisions</th><th>Top action</th></tr></thead><tbody>
+      ${list.map(d => { const all = objsOf(d), x = d.v4.drv; return `<tr><td class="nm">${d.l2}<small>${d.l1}</small></td><td class="num">${d.v4.score ?? '—'}</td><td>${lvl(d)}</td><td class="num">${x.breach}</td><td class="num">${all.filter(o => !o.ad && o.admLeft >= 0 && o.admLeft <= 3).length}</td><td class="num">${x.cand + x.recert + x.lapsed}</td><td>${mainAction(d)?.[0] || 'all good'}</td></tr>`; }).join('') || '<tr><td colspan="7">no subdomains</td></tr>'}</tbody></table>
       <div class="mmt"><b>What to do this week</b><ol>${list.flatMap(d => actions(d).slice(0, 2).map(a => ({ d, a }))).sort((x, y) => y.a[2] - x.a[2]).slice(0, 3).map(({ d, a }) => `<li>${d.l2}: ${a[0]}<small>${a[1]}${a[2] ? `, AI-Ready score +${a[2]}` : ''}</small></li>`).join('')}</ol></div>
       <div class="acts2" style="grid-template-columns:repeat(2,max-content)"><a class="btn primary" href="#/me">Open ${S.me.title.toLowerCase()}</a><span class="btn off">Set up notifications<small>after chat digests launch</small></span></div></div></div>`;
 }
@@ -354,13 +371,13 @@ function pageDom(u, tab = '', r = {}) {
     <div class="tabs">${DTABS.map(([k, l]) => `<a href="${base}${k ? '/' + k : ''}" ${tab === k ? 'aria-current="page"' : ''}>${l}${cntTxt[k] ? `<em>${cntTxt[k]}</em>` : counts[k] != null ? `<em>${fmt(counts[k])}</em>` : ''}</a>`).join('')}</div>`;
   let body;
   if (!tab) body = subOverview(D, `<div class="ovsec"><h2>${S.l2.many}</h2><span>by maturity: level, then AI-Ready score</span></div><div class="gcards">${[...u.subs].sort(byMaturity).map(d => subCard(d)).join('')}</div>`);
-  else if (tab === 'ards') body = subArds(D);
+  else if (tab === 'ards') body = subArds4(D);
   else if (tab === 'ai') body = subAI(D);
   else if (tab === 'ops') body = subOps(D);
   else if (tab === 'infra') body = domInfra(u);
   else if (tab === 'gl') body = subGloss(D, r);
   else body = subObjects(D, tab, r);
-  const crumbs = `<a href="#/">Overview</a> / ${tab ? `<a href="${base}">${u.name}</a> / <b>${(DTABS.find(([k]) => k === tab) || [, tab])[1]}</b>` : `<b>${u.name}</b>`}`;
+  const crumbs = `<a href="#/">AI readiness</a> / ${tab ? `<a href="${base}">${u.name}</a> / <b>${(DTABS.find(([k]) => k === tab) || [, tab])[1]}</b>` : `<b>${u.name}</b>`}`;
   // subdomain renderers link to #/s/<i>/…; for a domain they point to #/d/<name>/…
   return (topHtml(crumbs, `<div class="mode"><a aria-pressed="true">Cabinet</a>${g ? `<a href="${g.url}" aria-pressed="false">${g.label}</a>` : ''}</div>`) + `<div class="page">${head}${body}</div>`).replace(new RegExp(`#/s/${D.i}(?=[/"?])`, 'g'), base);
 }
@@ -368,7 +385,7 @@ function pageDom(u, tab = '', r = {}) {
 const axBar = (name, v) => `<div class="axb"><span>${name}</span><i><b style="width:${v ?? 0}%"></b></i><em>${v ?? '—'}</em></div>`;
 const subCard = (d, note) => `<div class="card subc"><h3><span class="dot ${cls(d.share)}"></span>${d.l2}${lvl(d)}${d.all.hot ? `<span style="margin-left:auto">${prob(d.all.hot)}</span>` : ''}</h3>
   ${note ? `<div style="font-size:12px;color:var(--ink2);margin-top:-6px">${d.l1}, you are ${note}</div>` : ''}
-  ${d.all.n ? `<div class="scx"><div class="sci"><b>${d.ards?.idx ?? '—'}</b><span>AI-Ready</span>${d.aiRank ? `<small>rank ${d.aiRank} of ${AI_RANKED}</small>` : ''}</div><div class="axs">${axBar('Axis 1 · Readiness', d.ards?.R.v)}${axBar('Axis 2 · Result', d.ards?.O.v)}</div></div>` : `<div style="font-size:12.5px;color:var(--ink2)">${S.l2.none}</div>`}
+  ${d.all.n ? `<div class="scx"><div class="sci"><b>${d.ards?.idx ?? '—'}</b><span>AI-Ready</span>${d.aiRank ? `<small>rank ${d.aiRank} of ${AI_RANKED}</small>` : ''}</div><div class="axs">${d.v4.p0.filter(c => c.inMin).map(c => axBar(c.key === 'mart' ? 'AI-ready data marts' : c.key === 'sem' ? 'Semantic coverage' : 'Golden set', c.none ? null : c.att == null ? null : Math.round(c.att))).join('')}</div></div>` : `<div style="font-size:12.5px;color:var(--ink2)">${S.l2.none}</div>`}
   <div class="dir"><i class="av">${initials(d.people.st?.n)}</i><span>${who(d, 'st') || `<span style="color:var(--bad)">${S.st.none}</span>`}<small>${S.st.one}${d.mood && has(d, 'st') ? ', ' + MOOD[d.mood] : ''}</small></span></div>
   <div class="dir"><i class="av av2">${initials(d.people.bp?.n)}</i><span>${has(d, 'bp') ? (d.people.bp?.n || 'name not found') : `<span style="color:var(--bad)">${S.bp.none}</span>`}<small>${S.bp.one}</small></span></div>
   <div class="acts"><a class="btn primary" href="#/s/${d.i}">Cabinet</a>${d.all.n ? game(S.game.l2(d)) : ''}</div></div>`;
@@ -378,7 +395,7 @@ const TABS = [['', 'Overview'], ['ards', 'AI-Ready Score'], ['ai', S.kind.ai], [
 function pageSub(d, tab, r) {
   const g2 = S.game.l2(d), gm = S.game.l2Map?.(d), gt = S.game.l2Tab(d, tab);
   const modes = `<div class="mode"><a href="#/s/${d.i}" aria-pressed="true">Cabinet</a>${d.all.n ? `<a class="gm" href="${g2.url}" aria-pressed="false">${g2.label}</a>` : ''}${gm ? `<a class="gm" href="${gm.url}" aria-pressed="false">${gm.label}</a>` : ''}${d.all.n ? `<a href="graph.html?d=${d.i}" aria-pressed="false">Links</a>` : ''}</div>`;
-  const crumbs = `<a href="#/">Overview</a> / <a href="#/d/${enc(d.l1)}">${d.l1}</a> / <b>${d.l2}</b>`;
+  const crumbs = `<a href="#/">AI readiness</a> / <a href="#/d/${enc(d.l1)}">${d.l1}</a> / <b>${d.l2}</b>`;
   const counts = { met: d.by.met.n, dm: d.by.dm.n, dash: d.by.dash.n, ops: d.incOpen.length || null }, cntTxt = { infra: d.cpu ? fmtK(d.cpu) + ' h' : null, gl: (() => { const G = glossOf(d); return G.terms.length ? `${G.ok}${G.queue ? ' +' + G.queue : ''}` : null; })() };
   const A = d.ards, aiN = A?.idx;
   const head = `<div class="hrow"><div class="grow"><h1>${d.l2}</h1>
@@ -387,7 +404,7 @@ function pageSub(d, tab, r) {
     <div class="tabs">${TABS.map(([k, l]) => `<a href="#/s/${d.i}${k ? '/' + k : ''}" ${tab === k ? 'aria-current="page"' : ''}>${l}${cntTxt[k] ? `<em>${cntTxt[k]}</em>` : counts[k] != null ? `<em>${fmt(counts[k])}</em>` : ''}</a>`).join('')}</div>`;
   let body = '';
   if (!tab) body = subOverview(d);
-  else if (tab === 'ards') body = subArds(d);
+  else if (tab === 'ards') body = subArds4(d);
   else if (tab === 'ai') body = subAI(d);
   else if (tab === 'ops') body = subOps(d);
   else if (tab === 'infra') body = subInfra(d);
@@ -417,7 +434,7 @@ const GL_STOP = new Set('legacy prod test view table datamart mart dds core the 
 const GL_ST = { ok: ['confirmed', '●'], cand: ['candidate from Wiki', '◌'], conflict: ['conflicting definitions', '!'], stale: ['stale: source changed', '⟳'] };
 const glCache = new Map();
 // display names for terms: word from object names → business term; words without an entry are shown as is
-const GL_LABEL = Object.fromEntries('auto:Auto|seller:Seller|buyer:Buyer|deal:Deal|item:Item|user:User|contact:Contact|paid:Paid contact|dealer:Dealer|journal:Journal|media:Media|revenue:Revenue|payment:Payment|order:Order|delivery:Delivery|listing:Listing|search:Search|view:View|click:Click|lead:Lead|call:Call|chat:Chat|messenger:Messenger|message:Message|vacancy:Vacancy|resume:Resume|price:Price|category:Category|region:Region|location:Location|city:City|segment:Segment|subscription:Subscription|tariff:Plan|promo:Promotion|promotion:Promotion|conversion:Conversion|retention:Retention|active:Activity|confirmed:Confirmation|answered:Reply|review:Review|rating:Rating|fraud:Fraud|moderation:Moderation|profile:Profile|account:Account|balance:Balance|wallet:Wallet|bonus:Bonus|discount:Discount|trigger:Trigger|traffic:Traffic|stream:Event stream|event:Event|session:Session|visit:Visit|vistis:Visit|impression:Impression|installment:Installment|credit:Credit|insurance:Insurance|realty:Real estate|rent:Rent|apartment:Apartment|service:Service|good:Product|goods:Goods|car:Car|cars:Cars|truck:Truck|machinery:Machinery|part:Part|market:Market|auction:Auction|appraisal:Vehicle appraisal|dictionary:Reference list|marketplace:Marketplace|logistic:Logistics|logistics:Logistics|warehouse:Warehouse|courier:Courier|refund:Refund|cart:Cart|checkout:Checkout|safe:Safe deal|booking:Booking|travel:Travel|hotel:Hotel|support:Support|ticket:Ticket|agent:Agent|efficiency:Efficiency|quality:Quality|used:Used|vin:VIN|crm:CRM|feature:Feature|model:Model|forecast:Forecast|budget:Budget|cost:Cost|spend:Spend|income:Income|margin:Margin|commission:Commission|fee:Fee|reputation:Reputation|identification:Identification|verification:Verification|passport:ID document|phone:Phone|email:Email|notification:Notification|push:Push|banner:Banner|advert:Advertising|adv:Advertising|campaign:Campaign|experiment:Experiment|test:Test|audience:Audience|cohort:Cohort|funnel:Funnel|transaction:Transaction|purchase:Purchase|sale:Sale|offer:Offer|response:Response|applicant:Applicant|employer:Employer|company:Company|shop:Shop|store:Store|stock:Stock|catalog:Catalog|brand:Brand|parameter:Parameter|params:Parameters|attribute:Attribute|value:Value|trx:Transaction revenue|private:Private sellers|business:Business|pro:Professionals|lot:Lot|bid:Bid|bids:Bids|report:Report|daily:Daily|status:Status|moderator:Moderator|complaint:Complaint|block:Block|ban:Ban|spam:Spam|bot:Bot|clickstream:Clickstream|microcategory:Microcategory|microcategories:Microcategories|vertical:Vertical|platform:Platform|metric:Metric|send:Send|target:Target|unique:Unique users|select:Sample|loan:Loan|rental:Rental|inspection:Inspection|amount:Amount|form:Form|buyout:Buyout|answer:Answer|answers:Answers|application:Application|request:Request|owner:Owner|garage:Garage|mileage:Mileage|generation:Generation|body:Body type|engine:Engine|query:Query|queries:Queries|goal:Goal|share:Share'.split('|').map(x => x.split(':')));
+const GL_LABEL = Object.fromEntries('patient:Patient|doctor:Doctor|nurse:Nurse|specialist:Specialist|therapist:Therapist|physician:Physician|pharmacist:Pharmacist|member:Member|payer:Payer|employer:Employer|dependent:Dependent|child:Child|family:Family|candidate:Candidate|supplier:Supplier|partner:Partner|agent:Agent|user:User|visit:Visit|encounter:Encounter|appointment:Appointment|slot:Slot|booking:Booking|checkin:Check-in|walkin:Walk-in|triage:Triage|wait:Wait time|referral:Referral|consult:Consultation|session:Session|video:Video visit|chat:Chat|message:Message|call:Call|callback:Callback|reminder:Reminder|noshow:No-show|cancellation:Cancellation|waitlist:Waitlist|capacity:Capacity|room:Room|chair:Chair|clinic:Clinic|specialty:Specialty|diagnosis:Diagnosis|procedure:Procedure|dental:Dental care|scan:Scan|mri:MRI|radiology:Radiology|therapy:Therapy|assessment:Assessment|plan:Plan|device:Device|reading:Reading|alert:Alert|case:Case|review:Review|sample:Sample|specimen:Specimen|test:Lab test|result:Result|panel:Panel|analyzer:Analyzer|turnaround:Turnaround|courier:Courier|biopsy:Biopsy|prescription:Prescription|refill:Refill|drug:Drug|dispense:Dispensing|pickup:Pickup|delivery:Delivery|parcel:Parcel|route:Route|stock:Stock|order:Order|item:Item|consumable:Consumable|equipment:Equipment|maintenance:Maintenance|instrument:Instrument|expiry:Expiry|claim:Claim|invoice:Invoice|denial:Denial|copay:Copay|payment:Payment|coverage:Coverage|eligibility:Eligibility|preauth:Prior authorization|contract:Contract|tariff:Tariff|refund:Refund|revenue:Revenue|cost:Cost|margin:Margin|budget:Budget|price:Price|incident:Incident|outcome:Outcome|readmission:Readmission|infection:Infection|complication:Complication|audit:Audit|guideline:Guideline|compliance:Compliance|complaint:Complaint|risk:Risk|shift:Shift|roster:Roster|overtime:Overtime|hire:Hire|vacancy:Vacancy|credential:Credential|license:License|utilization:Utilization|campaign:Campaign|channel:Channel|lead:Lead|segment:Segment|attribution:Attribution|impression:Impression|survey:Survey|nps:NPS|feedback:Feedback|consent:Consent|record:Health record|account:Account|cohort:Cohort|retention:Retention|conversion:Conversion|region:Region|kpi:KPI|target:Target|forecast:Forecast|experiment:Experiment|feature:Feature|model:Model|pipeline:Pipeline|dataset:Dataset|query:Query|event:Event|checker:Checker'.split('|').map(x => x.split(':')));
 const glSing = w => GL_LABEL[w] ? w : w.endsWith('ies') && GL_LABEL[w.slice(0, -3) + 'y'] ? w.slice(0, -3) + 'y' : w.endsWith('es') && GL_LABEL[w.slice(0, -2)] ? w.slice(0, -2) : w.endsWith('s') && GL_LABEL[w.slice(0, -1)] ? w.slice(0, -1) : w;
 function glossOf(d) { if (glCache.has(d)) return glCache.get(d);
   const objs = [...d.t.met, ...d.t.dm], tok = o => [...new Set(o.name.toLowerCase().replace(/^[a-z]+\./, '').split(/[^a-z0-9]+/).filter(w => (w.length >= 4 || GL_LABEL[w]) && !GL_STOP.has(w) && !/^\d+$/.test(w)).map(glSing))];
@@ -466,23 +483,23 @@ function glDomain(l1) { const M = new Map();
     [...t.met, ...t.dm].forEach(o => e.objs.add(o)); e.subs.add(x); e.key ||= t.key; if (t.status === 'ok') e.status = 'ok'; t.rel.forEach(R => e.rel.add(R.id)); if (t.broader) e.br.add(t.broader.id); M.set(t.id, e); }));
   return [...M.values()]; }
 // 3D concept map of a domain (glmap3d.js): nodes are terms, size is linked objects; typed relations: broader, related (shared objects), synonym
-// relation in words: term category → verb for the pair ("Buyer places order", "Listing has installment").
+// relation in words: term category → verb for the pair ("Patient books appointment", "Claim has copay").
 // For now, rules by category; in production an agent extracts the verb from the Wiki together with a quote
-const GL_CAT = {}; [['actor', 'User|Buyer|Seller|Dealer|Agent|Applicant|Employer|Company|Courier|Moderator|Owner|Private sellers|Business|Professionals|Audience|Shop|Store'],
-  ['object', 'Item|Listing|Order|Product|Goods|Car|Cars|Truck|Machinery|Part|Lot|Vacancy|Resume|Apartment|Real estate|Service|Catalog|Offer|Cart|Report|Profile|Account|Brand|Model|Microcategory|Microcategories|Category|Application|Garage|Mileage|Body type|Engine|Generation'],
-  ['money', 'Payment|Revenue|Balance|Wallet|Installment|Credit|Loan|Bonus|Discount|Commission|Fee|Price|Plan|Subscription|Paid contact|Transaction revenue|Income|Margin|Spend|Cost|Budget|Bid|Bids|Purchase|Sale|Transaction|Refund|Amount|Buyout|Insurance|Safe deal|Deal|Rent|Rental'],
-  ['event', 'View|Click|Call|Chat|Message|Messenger|Contact|Response|Visit|Session|Event|Event stream|Impression|Search|Reply|Answer|Answers|Confirmation|Send|Notification|Push|Query|Queries|Request|Booking|Inspection|Checkout'],
-  ['control', 'Block|Ban|Moderation|Complaint|Fraud|Spam|Bot|Status|Verification|Identification|Reputation|Review|Rating'],
-  ['logistics', 'Delivery|Warehouse|Logistics|Stock'],
-  ['analytic', 'Conversion|Retention|Funnel|Cohort|Segment|Activity|Efficiency|Quality|Forecast|Experiment|Test|Goal|Target|Share|Unique users|Sample|Feature']].forEach(([c, names]) => names.split('|').forEach(n => { GL_CAT[n] = c; }));
+const GL_CAT = {}; [['actor', 'Patient|Doctor|Nurse|Specialist|Therapist|Physician|Pharmacist|Member|Payer|Employer|Dependent|Child|Family|Candidate|Supplier|Partner|Agent|User|Clinic'],
+  ['object', 'Health record|Prescription|Drug|Sample|Specimen|Lab test|Result|Panel|Plan|Device|Equipment|Instrument|Consumable|Item|Order|Room|Chair|Specialty|Diagnosis|Procedure|Scan|MRI|Dental care|Account|Case|Contract|Tariff|Model|Feature|Dataset|Pipeline|Credential|License|Shift|Roster|Vacancy'],
+  ['money', 'Claim|Invoice|Denial|Copay|Payment|Coverage|Refund|Revenue|Cost|Margin|Budget|Price|Prior authorization|Eligibility'],
+  ['event', 'Visit|Encounter|Appointment|Slot|Booking|Check-in|Walk-in|Triage|Referral|Consultation|Session|Video visit|Chat|Message|Call|Callback|Reminder|No-show|Cancellation|Reading|Alert|Event|Query|Hire|Overtime|Dispensing|Refill|Survey|Feedback|Impression|Lead|Campaign'],
+  ['control', 'Incident|Readmission|Infection|Complication|Audit|Guideline|Compliance|Complaint|Risk|Consent|Review|Assessment|Biopsy|Radiology|Therapy'],
+  ['logistics', 'Delivery|Pickup|Parcel|Route|Courier|Stock|Expiry|Maintenance|Waitlist|Capacity|Turnaround|Analyzer'],
+  ['analytic', 'Conversion|Retention|Cohort|Segment|Utilization|Outcome|Wait time|NPS|Attribution|Channel|Forecast|Experiment|KPI|Target|Region|Checker']].forEach(([c, names]) => names.split('|').forEach(n => { GL_CAT[n] = c; }));
 const GL_VERB = { 'actor>object': 'creates', 'actor>event': 'makes', 'actor>money': 'pays', 'actor>logistics': 'receives', 'actor>actor': 'chooses', 'actor>control': 'passes', 'actor>analytic': 'shapes', 'object>analytic': 'shapes', 'event>analytic': 'shapes', 'money>analytic': 'shapes',
   'object>money': 'has', 'object>event': 'gets', 'object>logistics': 'requires', 'object>object': 'contains', 'object>control': 'passes',
   'event>money': 'brings', 'event>event': 'triggers', 'event>logistics': 'triggers', 'money>money': 'includes', 'money>logistics': 'covers',
   'control>actor': 'restricts', 'control>object': 'restricts', 'control>event': 'checks', 'control>money': 'protects',
   'analytic>actor': 'measures', 'analytic>object': 'measures', 'analytic>event': 'measures', 'analytic>money': 'measures', 'logistics>money': 'shapes' };
-// for sellers money comes in, not out
-const GL_SELLERS = new Set(['Seller', 'Dealer', 'Employer', 'Company', 'Shop', 'Store', 'Business', 'Professionals', 'Owner']);
-// second term in lower case for the phrase ("pays deal", "chooses seller"); acronyms stay as is
+// for providers money comes in, not out
+const GL_SELLERS = new Set(['Doctor', 'Clinic', 'Specialist', 'Therapist', 'Physician', 'Pharmacist', 'Supplier', 'Partner', 'Nurse']);
+// second term in lower case for the phrase ("pays claim", "chooses doctor"); acronyms stay as is
 function glAcc(name) { return /^[A-Z]{2,}/.test(name) ? name : name[0].toLowerCase() + name.slice(1); }
 const CAT_ORDER = ['actor', 'control', 'analytic', 'object', 'event', 'money', 'logistics'];
 function glVerb(A, B) { const ca = GL_CAT[A.name], cb = GL_CAT[B.name]; if (!ca || !cb) return null;
@@ -638,21 +655,22 @@ function dynCard(d) {
     ${row(S.health.name, d.trend.all, d.all)}${row(S.kind.dm, d.trend.dm, d.by.dm)}${row(S.kind.met, d.trend.met, d.by.met)}${row(S.kind.dash, d.trend.dash, d.by.dash)}</div></div>`; }
 function subOverview(d, top = '') {
   const ai = aiMock(d), T = tasks(d);
-  const objBlk = (k, title) => { const a = d.by[k]; return blk(k, title, a.n ? pct(a.good, a.n) + '%' + dyn(d.trend[k]) : '—', a.n ? `healthy, ${fmt(a.good)} of ${fmt(a.n)}` : 'no objects', meter(a),
-    k === 'dm' ? `<span>On time</span><b>${p0(freshPct(d))}</b><span>Monitored</span><b>${p0(d.mon.n ? d.mon.on / d.mon.n : null)}</b><span>Open incidents</span><b>${d.incOpen.length}</b><span>Issues</span><b>${a.hot}</b>`
-    : `<span>Certified</span><b>${a.n ? pct(a.cert, a.n) + '%' : '—'}</b><span>${UNIT[k][0].toUpperCase() + UNIT[k].slice(1)}</span><b>${fmt(a.use)}</b><span>Issues</span><b>${a.hot}</b>`); };
+  const objBlk = (k, title) => { const a = d.by[k]; return blk(k, title, a.n ? pct(a.good, a.n) + '%' + dyn(d.trend[k]) : '—', a.n ? `healthy by SLO, ${fmt(a.good)} of ${fmt(a.n)}` : 'no objects', meter(a),
+    `<span>Pass admission</span><b>${pcx(d.v4.drv.adm[k])}</b><span>Certified</span><b>${pcx(d.v4.drv.cert[k])}</b>` + (k === 'dm' ? `<span>On time</span><b>${p0(freshPct(d))}</b><span>Open incidents</span><b>${d.incOpen.length}</b>`
+    : `<span>${UNIT[k][0].toUpperCase() + UNIT[k].slice(1)}</span><b>${fmt(a.use)}</b><span>Issues</span><b>${a.hot}</b>`)); };
   const tipsTop = d.igsTips.filter(x => x.text).sort((a, b) => b.gain - a.gain);
   // layout: AI-Ready → objects row (three types and context) → operations and trend row → issues, staff and tasks; cards in a row share a height
-  const ctxBlk = (() => { const r5 = compOf(d, 'R5'), o1 = compOf(d, 'O1'), o2 = compOf(d, 'O2'); return blk('ards', 'Context and evals', r5?.status === 'tbd' ? 'TBD' : r5?.fact == null ? '—' : Math.round(r5.fact * 100) + '%', `1.4 Domain knowledge · ${TBD}`, `<div class="meter"><i style="width:${Math.round((r5?.fact || 0) * 100)}%;background:var(--ink)"></i></div>`,
-        `<span>${S.skillLabel}</span><b>${d.skill ? 'published' : 'none'}</b><span>FAQ, glossary, text2sql</span><b>${fmt(d.faq)} · ${fmt(d.gl)} · ${fmt(d.t2s)}</b><span>Golden set cases ${MOCKC}</span><b>${d.ards.gs}</b><span>Answer accuracy 2.1 ${MOCKC}</span><b>${o1?.fact == null ? '—' : Math.round(o1.fact * 100) + '%'}</b><span>Question coverage 2.2 ${MOCKC}</span><b>${o2?.fact == null ? '—' : Math.round(o2.fact * 100) + '%'}</b>`); })();
-  return `${levelCard(d)}
+  const ctxBlk = (() => { const A = ansOf(d.subs ? { i: -1 } : d), g = d.v4.p0[2], h = d.v4.p0[3], x = d.v4.drv;
+    return blk('ards', 'Answers', g.fact == null || !g.n ? '—' : pcx(g.fact), `golden set, threshold ${pcx(g.target)}`, `<div class="meter"><i style="width:${Math.round((g.fact || 0) * 100)}%;background:var(--ink)"></i></div>`,
+      `<span>${S.skillLabel}</span><b>${d.skill ? 'published' : 'none'}</b><span>Golden questions</span><b>${fmt(g.n || 0)}</b><span>Real questions</span><b>${h.fact == null ? (h.note || '—') : `${pcx(h.fact)} vs ${pcx(h.base)}`}</b><span>On trusted objects</span><b>${pcx(x.trusted)}</b><span>Feedback balance</span><b>${x.fb.bal ?? '—'}</b>`); })();
+  return `${v4Card(d)}${roleCard(d)}
     ${d.subs ? top : `<div class="ovsec"><h2>${S.peopleTitle}</h2><span>${ROLES.filter(([k]) => has(d, k)).length} of ${ROLES.length} · a BI partner and a data owner are needed to leave L0</span></div>
     ${staffHtml(d).replace('class="card staff"', 'class="card staff srow"')}`}
     <div class="ovsec"><h2>Objects and context</h2><span>health of data marts, metrics and dashboards, context for agents</span></div>
     <div class="ovrow">
       ${objBlk('dm', S.kind.dm)}
-      ${blk('met', S.kind.met, d.by.met.n ? pct(d.by.met.good, d.by.met.n) + '%' + dyn(d.trend.met) : '—', d.by.met.n ? `healthy, ${fmt(d.by.met.good)} of ${fmt(d.by.met.n)}` : 'no metrics', meter(d.by.met),
-        `<span>Questions covered by healthy metrics ${MOCK}</span><b>${d.by.met.n ? ai.cover + '%' : '—'}</b><span>Uses</span><b>${fmt(d.by.met.use)}</b><span>Issues</span><b>${d.by.met.hot}</b>`)}
+      ${blk('met', S.kind.met, d.by.met.n ? pct(d.by.met.good, d.by.met.n) + '%' + dyn(d.trend.met) : '—', d.by.met.n ? `healthy by SLO, ${fmt(d.by.met.good)} of ${fmt(d.by.met.n)}` : 'no metrics', meter(d.by.met),
+        `<span>Measures covered by healthy metrics</span><b>${pcx(d.v4.p0[1].fact)}</b><span>Pass admission</span><b>${pcx(d.v4.drv.adm.met)}</b><span>Certified</span><b>${pcx(d.v4.drv.cert.met)}</b><span>Uses</span><b>${fmt(d.by.met.use)}</b>`)}
       ${objBlk('dash', S.kind.dash)}
       ${ctxBlk}
     </div>
@@ -661,8 +679,8 @@ function subOverview(d, top = '') {
     <div class="grid2" style="margin-top:6px">
       <div><div class="sec"><h2>Issues</h2><span>${d.hotList.length}</span></div>
         <div class="card list">${mixHot(d.hotList, 10).map(o => objItem(o, false, true)).join('') || '<div class="it"><span></span><span style="color:var(--ink3)">none</span></div>'}</div></div>
-      <div><div class="sec"><h2>${S.tasksTitle}</h2><span>${(() => { const g = idxGain(d, { R1: 1, R2: 1, R3: 1 }); return g ? `together these raise the AI-Ready score by up to +${g}` : 'the score is currently limited by axis 2 · Result'; })()}</span></div>
-        <div class="card">${T.map(([a, b, pt, g]) => `<div class="task"><i></i><div>${a}<small>${b}</small></div><div class="tr"><em class="${pt ? '' : 'z'}" title="how much the AI-Ready score min(axis 1, axis 2) rises">${typeof pt === 'string' ? pt : pt ? `score +${pt}` : 'no effect on score'}</em>${tlink(g)}</div></div>`).join('') || '<div class="task"><i></i><div>All good</div></div>'}</div>
+      <div><div class="sec"><h2>${S.tasksTitle}</h2><span>${(() => { const g = idxGain(d, { R1: 1, R2: 1, R3: 1 }); return g ? `together these raise the AI-Ready score by up to +${g}` : `the score is set by ${d.v4.weakest ? d.v4.weakest.name.toLowerCase() : 'P0 without data'}`; })()}</span></div>
+        <div class="card">${T.map(([a, b, pt, g]) => `<div class="task"><i></i><div>${a}<small>${b}</small></div><div class="tr"><em class="${pt ? '' : 'z'}" title="how much the AI-Ready score (min of P0 in the minimum) rises">${typeof pt === 'string' ? pt : pt ? `score +${pt}` : 'no effect on score'}</em>${tlink(g)}</div></div>`).join('') || '<div class="task"><i></i><div>All good</div></div>'}</div>
         <div class="gap">The portal only shows the state of the ${S.ofL2}. Work happens in the tools: metrics in the Semantic Layer, dashboards in Dashboards, data marts in the Data Catalog and Git, knowledge in the Knowledge Base, roles in the portal's Domain Registry.</div></div>
     </div>`;
 }
@@ -689,16 +707,17 @@ function subAI(d) {
     </div>`;
 }
 const FILTERS = { all: ['All', () => true], bad: ['Unhealthy', o => !ok(o.s)], hot: ['Issues', isHot], ok: ['Healthy', o => ok(o.s)], cert: ['Certified', o => o.s === 1 || o.s === 3],
-  late: ['Late', o => [1, 2].includes(freshOf(o))], nomon: ['Not monitored', o => monOf(o) === false], inc: ['With incidents', o => o.inc.some(isOpen)] };
+  noadm: ['Fail admission', o => !o.ad], late: ['Late', o => [1, 2].includes(freshOf(o))], nomon: ['Not monitored', o => monOf(o) === false], inc: ['With incidents', o => o.inc.some(isOpen)] };
 function subObjects(d, t, r) {
   const f = FILTERS[r.q.f] ? r.q.f : 'all', q = (r.q.q || '').toLowerCase(), a = d.by[t], sk = r.q.s || 'pop';
-  const cols = CHECKS[t], cval = (o, i) => o.chk ? o.chk[0][i] : null;
+  // columns are the admission criteria of the type; health and certification sit next to them
+  const cols = ADM_CRIT[t].map(n => [n, n]), cval = (o, i) => o.adm[i];
   let list = d.t[t].filter(o => FILTERS[f][1](o) && (!q || o.name.toLowerCase().includes(q)));
-  const key = { pop: o => -o.pop, name: o => o.name, st: o => o.s, fresh: o => freshOf(o) ?? 9, mon: o => o.chk ? o.chk[1][4] || 0 : -1 };
+  const key = { pop: o => -o.pop, name: o => o.name, st: o => o.s, tier: o => o.tier, slo: o => o.slo ?? -1, cert: o => -o.cert };
   cols.forEach(([k], i) => { key['c' + i] = o => cval(o, i) === '0' ? 0 : cval(o, i) === '1' ? 2 : 1; });
   list = [...list].sort((x, y) => { const kx = key[sk]?.(x), ky = key[sk]?.(y); return kx < ky ? -1 : kx > ky ? 1 : y.pop - x.pop; });
   const th = (k, l, c = '') => `<th class="sortable ${c}${sk === k ? ' on' : ''}" data-s="${k}" title="sort">${l}</th>`;
-  const fk = t === 'dm' ? ['all', 'bad', 'hot', 'late', 'nomon', 'inc', 'cert'] : ['all', 'bad', 'hot', 'ok', 'cert'];
+  const fk = t === 'dm' ? ['all', 'bad', 'noadm', 'hot', 'late', 'inc', 'cert'] : ['all', 'bad', 'noadm', 'hot', 'ok', 'cert'];
   const cd = v => `<i class="cd ${v === '1' ? 'ok' : v === '0' ? 'bad' : 'gry'}" title="${v === '1' ? 'passed' : v === '0' ? 'failed' : 'no data'}"></i>`;
   const covered = d.t[t].filter(o => o.chk).length;
   return `<div class="kpis">
@@ -712,11 +731,11 @@ function subObjects(d, t, r) {
     <div class="filters">${fk.map(k => `<button data-f="${k}" aria-pressed="${f === k}">${FILTERS[k][0]}</button>`).join('')}
       <input id="fq" placeholder="Filter by name" value="${r.q.q || ''}">
       ${{ met: plink({ p: 'semantic', url: PRODUCTS.semantic.url, what: 'edit metrics' }, 'btn sm'), dm: plink({ p: 'catalog', url: PRODUCTS.catalog.url, what: 'data mart metadata' }, 'btn sm'), dash: plink({ p: 'dashboards', url: PRODUCTS.dashboards.url, what: 'edit dashboards' }, 'btn sm') }[t]}</div>
-    <div class="card tw"><table class="tbl fixed chk" style="min-width:${t === 'dm' ? 1320 : 980}px"><colgroup><col style="width:34px"><col>${cols.map(() => '<col style="width:56px">').join('')}${t === 'dm' ? '<col style="width:140px"><col style="width:110px">' : ''}<col style="width:100px"></colgroup>
-      <thead><tr><th></th>${th('name', 'Object')}${cols.map(([k, n], i) => th('c' + i, `<span title="${n}">${CC_SHORT[k] || n}</span>`, 'cc')).join('')}${t === 'dm' ? th('fresh', 'Freshness') + th('mon', 'Checks') : ''}${th('pop', 'Views', 'num')}</tr></thead><tbody>
-      ${list.slice(0, 300).map(o => `<tr data-o="${o.sub}:${o.t}:${o.name}"><td><span class="dot ${sdot(o)}"></span></td><td class="nm" title="${o.name}"><span class="nmc">${certBtn(o, true)}<span>${o.name}</span></span><small>${st(o)}${isHot(o) ? ', issue' : ''}${o.inc.some(isOpen) ? ', open incident' : ''}</small></td>${cols.map((_, i) => `<td class="cc">${cd(cval(o, i))}</td>`).join('')}${t === 'dm' ? `<td>${freshChip(o)}</td><td>${monChip(o)}</td>` : ''}<td class="num">${fmt(o.pop)}</td></tr>`).join('') || `<tr><td colspan="${cols.length + 5}" style="color:var(--ink3)">no objects</td></tr>`}
+    <div class="card tw"><table class="tbl fixed chk" style="min-width:${t === 'dash' ? 900 : 1260}px"><colgroup><col style="width:34px"><col><col style="width:64px"><col style="width:86px">${cols.map(() => '<col style="width:62px">').join('')}<col style="width:120px"><col style="width:90px"></colgroup>
+      <thead><tr><th></th>${th('name', 'Object')}${th('tier', 'Tier')}${th('slo', 'SLO')}${cols.map(([k, n], i) => th('c' + i, `<span title="admission: ${n}">${ADM_SHORT[k] || n}</span>`, 'cc')).join('')}${th('cert', 'Certification')}${th('pop', 'Views', 'num')}</tr></thead><tbody>
+      ${list.slice(0, 300).map(o => `<tr data-o="${o.sub}:${o.t}:${o.name}"><td><span class="dot ${sdot(o)}"></span></td><td class="nm" title="${o.name}"><span class="nmc">${certBtn(o, true)}<span>${o.name}</span></span><small>${st(o)}${isHot(o) ? ', issue' : ''}${o.inc.some(isOpen) ? ', open incident' : ''}</small></td><td>T${o.tier}</td><td>${o.slo == null ? '<span class="st">no telemetry</span>' : `<span class="${o.h ? 'okt' : 'badt'}">${o.slo}/${WINDOW}</span>`}</td>${cols.map((_, i) => `<td class="cc">${cd(cval(o, i))}</td>`).join('')}<td>${sg(o.cert === 2 ? 'key' : o.cert === 3 ? 'warn' : o.cert === 4 ? 'bad' : o.cert === 1 ? 'info' : 'grey', CERT[o.cert], CERT[o.cert])}</td><td class="num">${fmt(o.pop)}</td></tr>`).join('') || `<tr><td colspan="${cols.length + 5}" style="color:var(--ink3)">no objects</td></tr>`}
     </tbody></table></div>${list.length > 300 ? `<div class="gap">Showing the first 300 of ${fmt(list.length)}</div>` : ''}
-    <div class="gap">Columns are health score checks as of ${dd(OPS_DATE)}: green passed, red failed, grey no data. Components found for ${fmt(covered)} of ${fmt(a.n)} objects.${t === 'dm' ? ' Checks come from Data Contracts: not monitored means there are no business checks, only the platform NoRows and DuplicateKey.' : ''}</div>`;
+    <div class="gap">SLO is the number of days of the last ${WINDOW} the object met its SLO; it needs ${SLO_MIN[0]}, ${SLO_MIN[1]} or ${SLO_MIN[2]} by tier. The middle columns are admission criteria: green passed, red failed. Sandbox objects are not listed. Snapshot ${dd(OPS_DATE)}.</div>`;
 }
 // Reliability tab: data mart freshness and DQ incidents
 function subOps(d) {
@@ -746,6 +765,12 @@ function subOps(d) {
 // ---------- object panel ----------
 // The portal only shows state: every failed check links to the tool where it is fixed.
 const drawer = $('drawer'), scrim = $('scrim');
+// three signals of an object in the drawer: health by SLO, admission with the countdown, certification state
+function sigBlock(o) { const rt = o.cause === 2 ? rootOf(o) : null, d = SUBS[o.sub];
+  const line = (c, t, b, sm) => `<div class="sgl"><span class="sg ${c}">${t}</span><div><b>${b}</b><small>${sm}</small></div></div>`;
+  return `<div class="sgb">${line(o.slo == null ? 'grey' : o.h ? 'ok' : 'bad', 'SLO', o.slo == null ? 'No telemetry' : o.h ? 'Healthy' : `SLO breach, cause: ${CAUSE[o.cause]}`, o.slo == null ? 'not counted as healthy' : `${o.slo} of ${WINDOW} days met, ${TIER[o.tier]} needs ${SLO_MIN[o.tier]}${o.red ? ` · red ${o.red} days` : ''}${rt ? ` · root ${rt.name}` : ''}`)}
+    ${line(o.ad ? 'ok' : 'bad', 'ADM', o.ad ? 'Passes admission' : `Fails: ${o.admFail.join(', ')}`, o.ad ? ADM_CRIT[o.t].join(', ') : o.admLeft < 0 ? 'exception granted with its own deadline' : `taken off publication in ${o.admLeft} ${plural(o.admLeft, 'day', 'days')}`)}
+    ${line(o.cert === 2 ? 'key' : o.cert === 3 ? 'warn' : o.cert === 4 ? 'bad' : o.cert === 1 ? 'info' : 'grey', 'CERT', CERT[o.cert][0].toUpperCase() + CERT[o.cert].slice(1), o.cert === 0 ? (o.h && o.ad ? 'healthy and admitted: can be proposed to the BI partner' : 'must be healthy and pass admission first') : o.cert === 1 ? `waiting ${o.certDays} of 14 days for ${who(d, 'bp') || 'a BI partner'}` : o.cert === 3 ? `${o.certDays} of 21 days, decision by ${who(d, 'bp') || 'the BI partner'}` : o.cert === 4 ? 'no decision in 21 days' : `by ${who(d, 'bp') || 'the BI partner'}`)}</div>`; }
 function closeDrawer() { drawer.classList.remove('open'); scrim.hidden = true; }
 scrim.onclick = closeDrawer;
 function openObj(o) {
@@ -753,7 +778,8 @@ function openObj(o) {
   drawer.classList.add('open'); scrim.hidden = false;
   $('dh').innerHTML = `<div class="k">${KIND1[o.t]}, ${d.l2}</div><h2>${o.name}</h2><button class="x" aria-label="Close">×</button>`;
   $('dh').querySelector('.x').onclick = closeDrawer;
-  { const on = isCertO(o), log = CERT_LOG.find(x => x.o === o);
+  $('dh').insertAdjacentHTML('beforeend', sigBlock(o));
+  if (false) { const on = isCertO(o), log = CERT_LOG.find(x => x.o === o);
     $('dh').insertAdjacentHTML('beforeend', `<div class="certrow"><i class="gv${on ? ' key' : ''}">${gIco('crown')}</i><span><b>${on ? 'Certified' : 'Not certified'}</b><small>${log ? `changed at ${log.at}: a draft, not saved in the demo` : on ? 'recommended as a source of truth' : o.s >= 2 ? 'healthy, can be certified' : 'must pass health score checks first'}</small></span>${certBtn(o).replace('<span>Certified</span>', '<span>Remove certification</span>')}</div>`); }
   const x = o.chk?.[1] || [], open = o.inc.filter(isOpen), last = [...o.inc].sort((a, b) => b[3] < a[3] ? -1 : 1).slice(0, 5);
   const ops = o.t === 'dm' && o.chk ? `<div class="dsec"><span>Operations as of ${dd(OPS_DATE)}</span></div>
@@ -763,9 +789,9 @@ function openObj(o) {
   const down = o.down ? `<div class="dsec"><span>Affected downstream</span><span>Dashboards and warehouse</span></div>
     <div class="kvv"><span>Dashboards</span><b>${fmt(o.down[1])}</b><span>MAU of these dashboards</span><b>${fmt(o.down[3])}</b><span>Queries and datasets</span><b>${fmt(o.down[2])}</b><span>Warehouse objects</span><b>${fmt(o.down[0])}</b></div>
     ${o.down[4]?.length ? `<div class="dlist">${o.down[4].map(n => `<span title="${n}">${n}</span>`).join('')}</div>` : ''}` : '';
-  $('db').innerHTML = `<div class="stat"><div><b>${fmt(o.pop)}</b><span>${UNIT[o.t]}</span></div><div><b><span class="dot ${sdot(o)}"></span> ${known.length - fails.length}/${known.length}</b><span>${st(o)}</span></div><div><b>${isHot(o) ? 'yes' : 'no'}</b><span>issue</span></div></div>
-    <div class="dsec"><span>Health checks ${real ? `<span class="srcl">health score ${dd(OPS_DATE)}</span>` : MOCK}</span><span>${fails.length ? `${fails.length} failed` : 'all passed'}</span></div>
-    ${ch.map(([n, ds, y]) => `<div class="check"><i class="${y === true ? 'y' : y === false ? 'n' : 'u'}">${y === true ? '✓' : y === false ? '×' : '–'}</i><div>${n}<small>${y == null ? 'no data' : ds}</small></div>${y === false ? tlink(fixLink(o, n)) : ''}</div>`).join('')}
+  $('db').innerHTML = `<div class="stat"><div><b>${fmt(o.pop)}</b><span>${UNIT[o.t]}</span></div><div><b><span class="dot ${o.slo == null ? 'grey' : o.h ? 'ok' : 'bad'}"></span> ${o.slo == null ? '—' : o.slo + '/' + WINDOW}</b><span>SLO days</span></div><div><b>${TIER[o.tier]}</b><span>tier</span></div></div>
+    <div class="dsec"><span>Admission criteria</span><span>${o.admFail.length ? `${o.admFail.length} failed` : 'all passed'}</span></div>
+    ${ADM_CRIT[o.t].map((n, i) => { const y = o.adm[i] === '1'; return `<div class="check"><i class="${y ? 'y' : 'n'}">${y ? '✓' : '×'}</i><div>${n}<small>${y ? 'passed' : o.admLeft < 0 ? 'failed, exception granted' : `failed, ${o.admLeft} ${plural(o.admLeft, 'day', 'days')} before unpublishing`}</small></div></div>`; }).join('')}
     ${ops}${inc}${down}
     <div class="dsec"><span>Open in tool</span></div>
     <div class="acts2">${TOOL[o.t](o).map(x => plink(x)).join('')}${game(g, 'btn', 'game')}</div>`;
@@ -778,7 +804,7 @@ function domInfra(u) {
   const kinds = {}; sv.forEach(({ v }) => v.groups.forEach(g => { const k = kinds[g.kind] ||= { short: g.short, n: 0, sav: 0, cpu: 0, gb: 0 }; k.n += g.items.length; k.sav += g.sav; k.cpu += g.cpu || 0; k.gb += g.gb || 0; }));
   const share = CPU_ALL ? u.cpu / CPU_ALL : 0, h = n => n >= 10 ? fmtK(n) : String(Math.round(n * 10) / 10);
   return `<div class="kpis">
-      <div class="kpi hero"><span>CPU, 30 days</span><b>${u.cpu ? fmtK(u.cpu) + ' h' : '—'}</b><small>${(share * 100).toFixed(1)}% of all Harbor Market CPU · ${INFRA_PERIOD}</small></div>
+      <div class="kpi hero"><span>CPU, 30 days</span><b>${u.cpu ? fmtK(u.cpu) + ' h' : '—'}</b><small>${(share * 100).toFixed(1)}% of all Harbor Health CPU · ${INFRA_PERIOD}</small></div>
       <div class="kpi"><span>Disk</span><b>${fmtStore(u.tb)}</b><small>average storage</small></div>
       <div class="kpi"><span>CPU per healthy object</span><b>${u.cpg == null ? '—' : fmtK(u.cpg) + ' h'}</b><small style="${u.cpg > CPG_P75 ? 'color:var(--bad)' : ''}">${u.cpg > CPG_P75 ? 'more than 75% of domains' : 'within normal range'}</small></div>
       <div class="kpi"><span>Possible savings</span><b class="okt">${savAll ? 'up to ' + fmtK(savAll) + ' h' : '—'}</b><small>${u.cpu ? Math.round(savAll / u.cpu * 100) + '% of domain CPU, estimate' : ''}</small></div>
@@ -803,7 +829,7 @@ function pageNew() {
   const bps = [...new Map(SUBS.filter(d => d.people.bp?.n).map(d => [d.people.bp.n, d.people.bp])).values()].sort((a, b) => a.n.localeCompare(b.n));
   const sts = [...new Map(SUBS.filter(d => d.people.st?.n).map(d => [d.people.st.n, d.people.st])).values()].sort((a, b) => a.n.localeCompare(b.n));
   const opt = list => list.map(p => `<option>${p.n}</option>`).join('');
-  return topHtml(`<a href="#/">Overview</a> / <b>New domain</b>`) + `<div class="page"><div class="hrow"><div class="grow"><h1>Create a domain</h1><p class="sub">The domain appears in the portal, the Insight Factories world and the ranking after approval and the first snapshot build.</p></div></div>
+  return topHtml(`<a href="#/">AI readiness</a> / <b>New domain</b>`) + `<div class="page"><div class="hrow"><div class="grow"><h1>Create a domain</h1><p class="sub">The domain appears in the portal, the Insight Factories world and the ranking after approval and the first snapshot build.</p></div></div>
     <div class="grid2"><form class="card nf" id="nf">
       <label>Domain name<input id="nf-name" required placeholder="for example, Rentals"></label>
       <label>Business unit<input id="nf-bu" placeholder="for example, Auto vertical"></label>
@@ -840,7 +866,7 @@ function onbSteps(d) {
 function pageOnb(d0) {
   const mine = MINE.filter(d => d.people.bp?.l === ME), d = d0 || mine[0] || SUBS.filter(x => x.all.n).sort((a, b) => b.all.n - a.all.n)[0], steps = onbSteps(d), done = steps.filter(s => s[1] === 'done').length, tot = steps.filter(s => s[1] !== 'na' && s[1] !== 'none').length;
   const IC2 = { done: '✓', prog: '◐', todo: '○', na: '·', none: '·' }, STEP_LABEL = { done: 'done', prog: 'in progress', todo: 'not started', na: 'optional', none: 'no objects' };
-  return topHtml(`<a href="#/">Overview</a> / <b>Onboarding</b>`) + `<div class="page"><div class="hrow"><div class="grow"><h1>Onboarding: ${S.roles.bp.toLowerCase()} (BI partner)</h1><p class="sub">What to do in the first weeks so the subdomain is under control and grows on AI-Ready. Statuses come from portal data.</p></div>
+  return topHtml(`<a href="#/">AI readiness</a> / <b>Onboarding</b>`) + `<div class="page"><div class="hrow"><div class="grow"><h1>Onboarding: ${S.roles.bp.toLowerCase()} (BI partner)</h1><p class="sub">What to do in the first weeks so the subdomain is under control and grows on AI-Ready. Statuses come from portal data.</p></div>
       <label class="onbsel">${S.l2.one}<select id="onbsub">${SUBS.filter(x => x.all.n).sort((a, b) => a.l2.localeCompare(b.l2)).map(x => `<option value="${x.i}"${x === d ? ' selected' : ''}>${x.l2} · ${x.l1}</option>`).join('')}</select></label></div>
     <div class="card onbh"><div><b>${done} of ${tot}</b><span>steps done · ${d.l2}, ${d.l1}</span></div><div class="goal"><i style="width:${tot ? done / tot * 100 : 0}%;background:var(--accent)"></i></div>
       <a class="btn" href="#/s/${d.i}">Subdomain cabinet</a><a class="btn" href="#" data-demo>BI onboarding checklist</a></div>
@@ -859,11 +885,220 @@ function pageOnb(d0) {
 }
 document.addEventListener('change', e => { if (e.target.id === 'onbsub') location.hash = `#/onboarding/${e.target.value}`; });
 
+// ============================================================================
+// 2027 method (AI-Ready v4): AI readiness, Health (SLO), Admission, Certification, Answers.
+// Three signals per object: health = SLO over 28 days by tier, admission = static criteria, certification = BI partner decision.
+// ============================================================================
+const pcx = v => v == null ? '—' : Math.round(v * 100) + '%';
+const attC = a => a == null ? 'grey' : a >= 100 ? 'ok' : a >= 60 ? 'warn' : 'bad';
+const COMPANY = { subs: SUBS.filter(d => d.all.n), t: { dm: SUBS.flatMap(d => d.t.dm), met: SUBS.flatMap(d => d.t.met), dash: SUBS.flatMap(d => d.t.dash) }, cpu: CPU_ALL, all: ALL };
+const CO = { s: score4(COMPANY), drv: drivers(COMPANY), cnt: counters(COMPANY) };
+const scoped = (r, list) => list.filter(o => { const d = SUBS[o.sub]; return (!r.q.d || d.l1 === r.q.d) && (r.q.s == null || +r.q.s === d.i) && (r.q.m !== '1' || MINE.includes(d)); });
+const scopeQ = d => d.subs ? `d=${enc(d.l1)}` : `s=${d.i}`;
+const allObjs = () => SUBS.flatMap(objsOf);
+const sloTxt = o => o.slo == null ? 'no telemetry' : `${o.slo}/${WINDOW} days`;
+// three signal badges: health, admission, certification
+const sg = (c, t, tip) => `<span class="sg ${c}" title="${tip}">${t}</span>`;
+const sigs = o => sg(o.slo == null ? 'grey' : o.h ? 'ok' : 'bad', 'SLO', o.slo == null ? 'health: no telemetry, not counted as healthy' : o.h ? `healthy: ${sloTxt(o)}, needs ${SLO_MIN[o.tier]}` : `breach: ${sloTxt(o)}, needs ${SLO_MIN[o.tier]}; cause: ${CAUSE[o.cause]}`)
+  + sg(o.ad ? 'ok' : 'bad', 'ADM', o.ad ? 'admission passed' : `admission failed: ${o.admFail.join(', ')}`)
+  + sg(o.cert === 2 ? 'key' : o.cert === 3 ? 'warn' : o.cert === 4 ? 'bad' : o.cert === 1 ? 'info' : 'grey', 'CERT', CERT[o.cert]);
+const filt = (key, cur, opts) => opts.map(([k, l]) => `<button data-q="${key}=${k}" aria-pressed="${(cur || 'all') === k}">${l}</button>`).join('');
+const domSel = r => `<select id="hd"><option value="">All ${S.l1.gen}</option>${DOMS.filter(u => u.all.n).map(u => `<option ${u.name === r.q.d ? 'selected' : ''}>${u.name}</option>`).join('')}</select>`;
+const scopeNote = r => r.q.s != null && SUBS[+r.q.s] ? `<span class="chip">${SUBS[+r.q.s].l2}<a href="${location.hash.replace(/([?&])s=\d+&?/, '$1').replace(/[?&]$/, '')}" style="margin-left:4px">×</a></span>` : '';
+const mineBtn = r => `<button data-q="m=${r.q.m === '1' ? '' : '1'}" aria-pressed="${r.q.m === '1'}">${S.me.nav}</button>`;
+const objCell = o => `<td class="nm" title="${o.name}">${o.name}<small>${KIND1[o.t]} · ${TIER[o.tier]}</small></td><td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${SUBS[o.sub].l2}<small class="s">${SUBS[o.sub].l1}</small></td>`;
+const KTYPE = [['all', 'All'], ['dm', 'Data marts'], ['met', 'Metrics'], ['dash', 'Dashboards']];
+// P0 card of the tree: label, value, target, attainment
+const p0Card = (c, href) => { const lab = c.inMin ? 'P0 · in the minimum' : 'P0 · by readiness', tg = c.target == null ? '—' : pcx(c.target);
+  return `<a class="tc p0${c.inMin ? '' : ' rd'}" href="${href}"><em>${lab}</em><b>${c.name}</b><div class="tv"><strong>${pcx(c.fact)}</strong><span>target ${c.key === 'real' ? (c.base == null ? 'growth from the baseline' : `baseline ${pcx(c.base)} + 10 pp`) : c.key === 'gold' ? `threshold ${tg}` : tg}</span></div>
+    <i class="tb"><u class="${attC(c.att)}" style="width:${Math.min(100, c.att ?? 0)}%"></u></i><small>${c.att == null ? (c.note || 'no data') : `attained ${Math.round(c.att)}%`}${!c.inMin && c.ready ? ` · ${c.ready.all ? 'ready, enters the minimum next quarter' : 'not ready'}` : ''}</small></a>`; };
+const p1Card = (name, v, sub, href, cl = '') => `<a class="tc p1 ${cl}" href="${href}"><em>P1 · driver</em><b>${name}</b><div class="tv"><strong>${v}</strong></div><small>${sub}</small></a>`;
+const ctCard = (name, v, sub) => `<div class="tc ct"><em>Counter-metric</em><b>${name}</b><div class="tv"><strong>${v}</strong></div><small>${sub}</small></div>`;
+function treeHtml(U, q = '') { const P = Object.fromEntries(U.s.p0.map(c => [c.key, c])), R = U.drv, C = U.cnt, a = q ? '?' + q : '';
+  const col = (k, title, cards) => `<div class="tcol ${k}"><h3>${title}</h3>${cards.join('')}</div>`;
+  const tri = (t, title) => [p1Card(`${title} healthy by SLO`, pcx(R.slo[t]), `${WINDOW}-day window, Tier 0–2`, `#/health${a ? a + '&' : '?'}t=${t}`), p1Card(`${title} pass admission`, pcx(R.adm[t]), 'static criteria', `#/adm${a ? a + '&' : '?'}t=${t}`), p1Card(`${title} certified`, pcx(R.cert[t]), 'BI partner decision', `#/cert${a}`)];
+  return `<div class="tree">
+    ${col('data', 'Data', [p0Card(P.mart, `#/health${a}`), ...tri('dm', 'Data marts'), p1Card('No telemetry', pcx(R.noTel), 'not counted as healthy', `#/health${a ? a + '&' : '?'}c=nt`, 'mut')])}
+    ${col('meaning', 'Meaning', [p0Card(P.sem, `#/adm${a ? a + '&' : '?'}t=met`), ...tri('met', 'Metrics')])}
+    ${col('trust', 'Trust', [p0Card(P.rep, `#/cert${a}`), ...tri('dash', 'Dashboards'), p1Card('Certified lineage', pcx(certLineage(U.t ? U.t.dash : [])), 'certified dashboards on certified data marts, by views', `#/cert${a}`)])}
+    ${col('answer', 'Answer', [p0Card(P.gold, `#/ans${a}`), p0Card(P.real, `#/ans${a}`), p1Card('Golden set coverage', pcx(R.cover), 'weight of top objects found in golden SQL', `#/ans${a}`), p1Card('Answers on trusted objects', pcx(R.trusted), 'the agent flags the rest', `#/ans${a}`)])}
+    ${col('loop', 'Loop', [p1Card('Agent feedback balance', R.fb.bal == null ? '—' : (R.fb.bal > 0 ? '+' : '') + R.fb.bal, `100 × (useful − problem) / all, ${R.fb.n} reviews`, `#/ans${a}`, R.fb.bal < 0 ? 'neg' : ''), p1Card('Recertifications open', fmt(R.recert), `${R.lapsed} not confirmed after 21 days`, `#/cert${a ? a + '&' : '?'}st=re`), p1Card('Candidates waiting', fmt(R.cand), 'review within 14 days', `#/cert${a}`)])}
+    ${col('counter', 'Counter-metrics', [ctCard('AI use by non-analysts', pcx(C.jtbd), 'weekly share, proxy for JTBD penetration; score up while this stays flat is a warning'), ctCard('Useful load per CPU hour', C.load == null ? '—' : n1(C.load), 'uses of AI-ready objects per CPU hour (hypothesis); cost growing faster than useful work is a warning')])}
+  </div>`; }
+// score distribution of subdomains, ten-point buckets
+function scoreDist(list) { const xs = list.filter(d => d.all.n && d.v4?.score != null), b = Array.from({ length: 10 }, (_, i) => xs.filter(d => Math.min(9, Math.floor(d.v4.score / 10)) === i).length), mx = Math.max(...b, 1);
+  return `<div class="card sdist"><div class="sbars">${b.map((n, i) => `<div title="${n} with score ${i * 10}–${i === 9 ? 100 : i * 10 + 9}"><i style="height:${n / mx * 100}%" class="${i === 9 ? 'top' : ''}"></i><b>${n || ''}</b><span>${i * 10}</span></div>`).join('')}</div>
+    <small>${xs.length} ${plural(xs.length, 'subdomain', 'subdomains')} scored · above 90: ${xs.filter(d => d.v4.score > 90).length}</small></div>`; }
+// which P0 limits the score most often
+function bottlenecks(list) { const SH = { mart: 'AI-ready data marts', sem: 'Semantic coverage', gold: 'Golden set' }, xs = list.filter(d => d.all.n && d.v4?.weakest), c = P0.filter(p => p[5]).map(p => [SH[p[0]], xs.filter(d => d.v4.weakest.key === p[0]).length]);
+  return `<div class="card ldist">${c.map(([n, k]) => `<div><span class="bnm">${n}</span><div class="track"><i style="width:${pct(k, xs.length)}%;background:var(--bad)"></i></div><b>${k}</b></div>`).join('')}<small>Number of subdomains whose score is set by this P0: raising any other metric does not move their score.</small></div>`; }
+function levelDist4(list) { const live = list.filter(d => d.level != null), c = LEVEL_NAMES.map((_, i) => live.filter(d => d.level === i).length);
+  return `<div class="card ldist">${LEVEL_NAMES.map((n, i) => `<div><span class="lv l${Math.min(i, 3)}">${n}</span><div class="track"><i style="width:${pct(c[i], live.length)}%;background:var(--lv${Math.min(i, 3)})"></i></div><b>${c[i]}</b></div>`).join('')}
+    <small>L1 roles and ${pcx(ADM_L1)} of Tier 0–2 objects admitted · L2 golden set of ${GOLD_MIN}+ and a skill · L3 golden set above the threshold and every P0 in the minimum at target except one · L4 all at target.</small></div>`; }
+const readyRow = (name, rd, r) => `<div class="rdy"><b>${name}</b>${[['days', `daily for ${WINDOW} days without gaps (${r.days})`], ['tagged', `80% of objects tagged by domain (${pcx(r.tagged)})`], ['baseline', 'baseline published for every domain']].map(([k, l]) => `<span class="${rd[k] ? 'y' : 'n'}"><i>${rd[k] ? '✓' : '×'}</i>${l}</span>`).join('')}<em>${rd.all ? 'enters the minimum from the next quarter' : 'shown next to the score, not in the minimum'}</em></div>`;
+
+function pageReady() {
+  const R = CO.drv, xs = SUBS.filter(d => d.v4?.score != null);
+  return topHtml('<b>AI readiness</b>') + `<div class="page">
+    <div class="hrow"><div class="grow"><h1>AI readiness</h1><p class="sub">${V4_YEAR} method. A subdomain score is the minimum attainment of its P0 metrics over a ${WINDOW}-day window, on Tier 0–2 objects. Three P0 are in the minimum; two more join once their computation is ready. Counter-metrics stay outside the minimum.</p></div>
+      <a class="btn game" href="${S.game.home}">${IC.game}${S.game.homeBtn}</a></div>
+    <div class="kpis">
+      <div class="kpi hero sc"><span>Function goal<em>mean subdomain score</em></span><div class="hv"><b>${FUNC.mean ?? '—'}<span> / 100</span></b><small class="hk">${FUNC.above} of ${FUNC.n} subdomains above 90</small></div>
+        <div class="goal"><i style="width:${FUNC.mean || 0}%;background:var(--ink)"></i></div><small>year result: mean of the three Q4 windows · a weak subdomain rising from 20 to 80 shows in the goal</small></div>
+      <div class="kpi"><span>Above 90</span><b>${FUNC.above}</b><small>of ${FUNC.n} subdomains</small></div>
+      <div class="kpi"><span><i class="dot ${cls(R.slo.dm)}"></i>Healthy by SLO</span><b>${pcx(COMPANY.all.n ? allObjs().filter(o => o.h).length / allObjs().length : null)}</b><small>Tier 0–2 objects, ${WINDOW} days</small></div>
+      <div class="kpi"><span>Pass admission</span><b>${pcx(allObjs().filter(o => o.ad).length / allObjs().length)}</b><small>${fmt(R.admFail)} fail a criterion</small></div>
+      <div class="kpi"><span>Certified</span><b>${pcx(allObjs().filter(o => o.ce).length / allObjs().length)}</b><small>${R.cand} candidates, ${R.recert} in recertification</small></div>
+      <div class="kpi"><span>SLO breaches</span><b>${fmt(R.breach)}</b><small>${pcx(R.noTel)} without telemetry</small></div>
+      <div class="kpi"><span>Sandbox</span><b>${fmt(SANDBOX.length)}</b><small>Tier 3, left out of every share</small></div>
+    </div>
+    <div class="sec"><h2>Metric tree</h2><span>company · click a card for its queue</span></div>
+    ${treeHtml(CO)}
+    <div class="card rdyc">${readyRow('Correct answers on real questions', P0_READY.real, READY.real)}${readyRow('Views of trusted reports', P0_READY.rep, READY.reports)}<small>A P0 joins the minimum from the quarter after all three conditions hold. The conditions are checked automatically; the Head of BI announces the date.</small></div>
+    <div class="grid3">
+      <div><div class="sec"><h2>Score of subdomains</h2><span>min over P0 in the minimum</span></div>${scoreDist(SUBS)}</div>
+      <div><div class="sec"><h2>What limits the score</h2><span>weakest P0</span></div>${bottlenecks(SUBS)}</div>
+      <div><div class="sec"><h2>Levels</h2><span>L0–L4</span></div>${levelDist4(SUBS)}</div>
+    </div>
+    <div class="sec"><h2>Prerequisites and answers</h2><span>${S.l2.many.toLowerCase()} · x: the weaker of data marts and semantic coverage, attained · y: golden set correct answers · size is data usage over 30 days</span></div>
+    ${roChart(SUBS)}
+    <div class="sec"><h2>${S.l1.many}</h2><span>domain score is the mean of its subdomains</span></div>
+    <div class="card tw"><table class="tbl"><thead><tr><th>${S.l1.one}</th><th class="num">Score</th><th class="num">Above 90</th>${P0.filter(p => p[5]).map(p => `<th class="num" title="${p[4]}">${p[2]}</th>`).join('')}<th>SLO</th><th>Admission</th><th>Certified</th><th>Level</th></tr></thead><tbody>
+      ${DOMV.filter(D => D.all.n).sort((a, b) => (b.v4.score ?? -1) - (a.v4.score ?? -1)).map(D => { const P = Object.fromEntries(D.v4.p0.map(c => [c.key, c])), a = D.all, h = { n: a.n, good: objsOf(D).filter(o => o.h).length }, ad = { n: a.n, good: objsOf(D).filter(o => o.ad).length }, ce = { n: a.n, good: objsOf(D).filter(o => o.ce).length };
+        return `<tr data-d="${enc(D.l1)}"><td class="nm">${D.l1}<small>${l2W(D.subs.length)}</small></td><td class="num"><b>${D.v4.score ?? '—'}</b></td><td class="num">${D.v4.above} of ${D.v4.scored}</td>${P0.filter(p => p[5]).map(p => `<td class="num ${attC(P[p[0]].att)}t">${pcx(P[p[0]].fact)}</td>`).join('')}<td>${hb(h)}</td><td>${hb(ad)}</td><td>${hb(ce)}</td><td>${lvl(D)}</td></tr>`; }).join('')}
+    </tbody></table></div>
+    <div class="gap">P0 columns are pooled over the objects of the domain; the score is the mean of subdomain scores. Golden set and held-out sample are generated for the demo.</div>
+    ${nomsBoard()}</div>`;
+}
+
+// ---------- Health (SLO) ----------
+const recip = o => { const d = SUBS[o.sub];
+  if (o.cause === 3) return ['Platform on-call', 'platform'];
+  if (o.cause === 2) { const r = rootOf(o), rd = r ? SUBS[r.sub] : d; return [who(rd, 'st') || 'no data owner', r ? `source ${r.name}` : 'source']; }
+  return [who(d, 'st') || 'no data owner', 'object owner']; };
+function pageHealth(r) {
+  const t = r.q.t || 'all', c = r.q.c || 'all', tier = r.q.tr || 'all';
+  const base = scoped(r, allObjs()), list = base.filter(o => (t === 'all' || o.t === t) && (tier === 'all' || o.tier === +tier) && (c === 'nt' ? o.slo == null : !o.h && o.slo != null && (c === 'all' || o.cause === +c)))
+    .sort((a, b) => a.tier - b.tier || (b.down ? b.down[1] : 0) - (a.down ? a.down[1] : 0) || b.pop - a.pop);
+  const lay = tt => { const xs = base.filter(o => o.t === tt); return `<div class="kpi"><span><i class="dot ${cls(xs.length ? xs.filter(o => o.h).length / xs.length : null)}"></i>${KIND[tt]}</span><b>${pcx(xs.length ? xs.filter(o => o.h).length / xs.length : null)}</b><small>${[0, 1, 2].map(k => { const y = xs.filter(o => o.tier === k); return `T${k} ${pcx(y.length ? y.filter(o => o.h).length / y.length : null)}`; }).join(' · ')}</small></div>`; };
+  const cz = k => base.filter(o => !o.h && o.slo != null && o.cause === k).length;
+  return topHtml('<a href="#/">AI readiness</a> / <b>Health</b>') + `<div class="page"><div class="hrow"><div class="grow"><h1>Health by SLO</h1><p class="sub">An object is healthy when it meets its SLO on enough days of the last ${WINDOW}: Tier 0 on ${SLO_MIN[0]}, Tier 1 on ${SLO_MIN[1]}, Tier 2 on ${SLO_MIN[2]}. SLO covers timeliness, platform and critical checks, availability and speed. An object is no healthier than its weakest source. Cost and popularity are not part of health.</p></div></div>
+    <div class="kpis">${lay('dm')}${lay('met')}${lay('dash')}
+      <div class="kpi"><span>Breaches</span><b>${fmt(base.filter(o => !o.h && o.slo != null).length)}</b><small>object ${cz(1)} · source ${cz(2)} · platform ${cz(3)}</small></div>
+      <div class="kpi"><span>No telemetry</span><b>${fmt(base.filter(o => o.slo == null).length)}</b><small>not counted as healthy</small></div></div>
+    <div class="filters">${filt('t', t, KTYPE)}<span class="fsep"></span>${filt('c', c, [['all', 'Any cause'], ['1', 'Object'], ['2', 'Source'], ['3', 'Platform'], ['nt', 'No telemetry']])}<span class="fsep"></span>${filt('tr', tier, [['all', 'Any tier'], ['0', 'Tier 0'], ['1', 'Tier 1'], ['2', 'Tier 2']])}
+      ${mineBtn(r)}${domSel(r)}${scopeNote(r)}<span class="cnt">${fmt(list.length)}</span></div>
+    <div class="card tw"><table class="tbl fixed"><colgroup><col style="width:34px"><col><col style="width:14%"><col style="width:80px"><col style="width:56px"><col style="width:200px"><col style="width:150px"><col style="width:130px"></colgroup>
+      <thead><tr><th></th><th>Object</th><th>${S.l2.one}</th><th class="num">SLO met</th><th class="num">Red</th><th>Cause and root</th><th>Recipient</th><th class="num">Downstream</th></tr></thead><tbody>
+      ${list.slice(0, 200).map(o => { const [who1, why] = o.slo == null ? ['Platform on-call', 'telemetry'] : recip(o), rt = o.cause === 2 ? rootOf(o) : null;
+        return `<tr data-o="${o.sub}:${o.t}:${o.name}"><td><span class="dot ${o.slo == null ? 'grey' : 'bad'}"></span></td>${objCell(o)}<td class="num">${o.slo == null ? '—' : `${o.slo}<small class="s">needs ${SLO_MIN[o.tier]}</small>`}</td><td class="num">${o.red ? o.red + ' d' : '—'}</td>
+          <td class="rt">${o.slo == null ? '<span class="st">no telemetry</span>' : `<span class="chip c${o.cause}">${CAUSE[o.cause]}</span>`}${rt ? `<small class="s" title="${rt.name}">root: ${rt.name}</small>` : ''}</td><td class="rt">${who1}<small class="s" title="${why}">${why}</small></td><td class="num">${o.down ? downTxt(o) : '—'}</td></tr>`; }).join('') || '<tr><td colspan="8" style="color:var(--ink3)">no breaches</td></tr>'}
+    </tbody></table></div>${list.length > 200 ? `<div class="gap">Showing the first 200 of ${fmt(list.length)}</div>` : ''}
+    <div class="gap">One recipient per breach: the object owner when the cause is the object, the owner of the root source when the breach is inherited, platform on-call for platform faults. Sorted by tier, then by dashboards downstream.</div></div>`;
+}
+
+// ---------- Admission ----------
+function pageAdm(r) {
+  const t = r.q.t || 'all', k = r.q.k || '', due = r.q.due === '1';
+  const base = scoped(r, allObjs()).filter(o => t === 'all' || o.t === t), fail = base.filter(o => !o.ad);
+  const list = fail.filter(o => (!k || o.admFail.includes(k)) && (!due || (o.admLeft >= 0 && o.admLeft <= 3))).sort((a, b) => (a.admLeft < 0 ? 99 : a.admLeft) - (b.admLeft < 0 ? 99 : b.admLeft) || a.tier - b.tier || b.pop - a.pop);
+  const types = t === 'all' ? TT : [t];
+  const crit = types.flatMap(tt => ADM_CRIT[tt].map((c, i) => [tt, c, base.filter(o => o.t === tt && o.adm[i] === '0').length])).filter(x => x[2]).sort((a, b) => b[2] - a[2]);
+  const cd = o => o.admLeft < 0 ? '<span class="chip info">exception</span>' : o.admLeft === 0 ? '<span class="chip no">unpublish today</span>' : `<span class="chip${o.admLeft <= 3 ? ' no' : ''}">${o.admLeft} ${plural(o.admLeft, 'day', 'days')} left</span>`;
+  return topHtml('<a href="#/">AI readiness</a> / <b>Admission</b>') + `<div class="page"><div class="hrow"><div class="grow"><h1>Admission</h1><p class="sub">Static conditions an object must meet to be published: owner, description, domain, BI partner, Trino, key and column descriptions for data marts; schedule, no temp or public schemas, no duplicates for metrics; README and datasets for dashboards. An object that fails is taken off publication after 14 days unless an exception with its own deadline is granted.</p></div>
+      ${list.length ? '<button class="btn primary" data-agent-list="hot">Run agent on the first 10<small>descriptions and metadata</small></button>' : ''}</div>
+    <div class="kpis">${TT.map(tt => { const xs = scoped(r, allObjs()).filter(o => o.t === tt); return `<div class="kpi"><span>${KIND[tt]}</span><b>${pcx(xs.length ? xs.filter(o => o.ad).length / xs.length : null)}</b><small>pass, ${fmt(xs.filter(o => !o.ad).length)} fail</small></div>`; }).join('')}
+      <div class="kpi"><span>Due in 3 days</span><b>${fmt(fail.filter(o => o.admLeft >= 0 && o.admLeft <= 3).length)}</b><small>then taken off publication</small></div>
+      <div class="kpi"><span>Exceptions</span><b>${fmt(fail.filter(o => o.admLeft < 0).length)}</b><small>granted with a deadline</small></div></div>
+    <div class="grid2b"><div><div class="sec"><h2>Failed criteria</h2><span>click to filter</span></div><div class="card ldist">${crit.slice(0, 10).map(([tt, c, n]) => `<div class="clk" data-q="k=${encodeURIComponent(c)}"><span class="bnm">${c}<small> · ${KIND1[tt].toLowerCase()}</small></span><div class="track"><i style="width:${pct(n, crit[0][2])}%;background:var(--warn)"></i></div><b>${fmt(n)}</b></div>`).join('') || '<small>none</small>'}</div></div>
+      <div><div class="sec"><h2>Why admission is separate</h2></div><div class="card gaps"><div class="gp"><p>Admission is checked once and stays until something changes. It does not say the data is correct today: that is health. It does not say the value can be trusted: that is certification. Agents fix most admission failures well: descriptions, owners, metadata.</p></div></div></div></div>
+    <div class="filters">${filt('t', t, KTYPE)}<button data-q="due=${due ? '' : '1'}" aria-pressed="${due}">Due in 3 days</button>${k ? `<button data-q="k=" aria-pressed="true">${k} ×</button>` : ''}${mineBtn(r)}${domSel(r)}${scopeNote(r)}<span class="cnt">${fmt(list.length)}</span></div>
+    <div class="card tw"><table class="tbl fixed"><colgroup><col style="width:34px"><col><col style="width:15%"><col style="width:260px"><col style="width:150px"><col style="width:90px"><col style="width:120px"></colgroup>
+      <thead><tr><th></th><th>Object</th><th>${S.l2.one}</th><th>Failed criteria</th><th>Countdown</th><th class="num">Views</th><th></th></tr></thead><tbody>
+      ${list.slice(0, 200).map(o => `<tr data-o="${o.sub}:${o.t}:${o.name}"><td><span class="dot warn"></span></td>${objCell(o)}<td>${o.admFail.map(x => `<span class="chip no">${x}</span>`).join(' ')}</td><td>${cd(o)}</td><td class="num">${fmt(o.pop)}</td><td><button class="agb" data-agent="${o.sub}:${o.t}:${o.name}">Run agent</button></td></tr>`).join('') || '<tr><td colspan="7" style="color:var(--ink3)">all pass</td></tr>'}
+    </tbody></table></div>${list.length > 200 ? `<div class="gap">Showing the first 200 of ${fmt(list.length)}</div>` : ''}</div>`;
+}
+
+// ---------- Certification ----------
+function pageCert(r) {
+  const stq = r.q.st || 'cand', base = scoped(r, allObjs());
+  const Q = { cand: base.filter(o => o.cert === 1).sort((a, b) => b.certDays - a.certDays), re: base.filter(o => o.cert === 3).sort((a, b) => b.certDays - a.certDays), lap: base.filter(o => o.cert === 4).sort((a, b) => b.certDays - a.certDays) };
+  const list = Q[stq] || Q.cand, dash = base.filter(o => o.t === 'dash');
+  const term = o => o.cert === 1 ? (o.certDays > 14 ? `<span class="chip no">${o.certDays - 14} d overdue</span>` : `<span class="chip">${14 - o.certDays} d to decide</span>`)
+    : o.cert === 3 ? (o.certDays > 21 ? '<span class="chip no">overdue</span>' : `<span class="chip${21 - o.certDays <= 7 ? ' no' : ''}">${21 - o.certDays} d to decide</span>`) : `<span class="chip no">${o.certDays - 21} d past the deadline</span>`;
+  const why = o => o.cert === 1 ? `waiting ${o.certDays} d` : o.cert === 3 ? `red ${o.red} d by its own fault, recertification for ${o.certDays} d` : `no decision for ${o.certDays} d: the certificate is not confirmed`;
+  return topHtml('<a href="#/">AI readiness</a> / <b>Certification</b>') + `<div class="page"><div class="hrow"><div class="grow"><h1>Certification</h1><p class="sub">The BI partner decides whether a value can be trusted. A candidate must be healthy and pass admission; the decision is due within 14 days. A certified object that stays red for 14 days by its own fault goes to recertification; without a decision in 21 days the certificate is not confirmed.</p></div></div>
+    <div class="kpis">${TT.map(tt => { const xs = base.filter(o => o.t === tt); return `<div class="kpi"><span>${KIND[tt]}</span><b>${pcx(xs.length ? xs.filter(o => o.ce).length / xs.length : null)}</b><small>certified</small></div>`; }).join('')}
+      <div class="kpi"><span>Certified lineage</span><b>${pcx(certLineage(dash))}</b><small>views of certified dashboards on certified data marts</small></div>
+      <div class="kpi"><span>Overdue decisions</span><b>${fmt(Q.cand.filter(o => o.certDays > 14).length + Q.re.filter(o => o.certDays > 21).length + Q.lap.length)}</b><small>candidates over 14 d, recertifications over 21 d</small></div></div>
+    <div class="filters">${filt('st', stq, [['cand', `Candidates ${Q.cand.length}`], ['re', `Recertification ${Q.re.length}`], ['lap', `Not confirmed ${Q.lap.length}`]])}${mineBtn(r)}${domSel(r)}${scopeNote(r)}<span class="cnt">${fmt(list.length)}</span></div>
+    <div class="card tw"><table class="tbl fixed"><colgroup><col style="width:34px"><col><col style="width:15%"><col style="width:150px"><col style="width:220px"><col style="width:140px"><col style="width:160px"></colgroup>
+      <thead><tr><th></th><th>Object</th><th>${S.l2.one}</th><th>BI partner</th><th>State</th><th>Term</th><th>Signals</th></tr></thead><tbody>
+      ${list.slice(0, 200).map(o => `<tr data-o="${o.sub}:${o.t}:${o.name}"><td><span class="dot ${o.cert === 1 ? 'grey' : o.cert === 3 ? 'warn' : 'bad'}"></span></td>${objCell(o)}<td>${who(SUBS[o.sub], 'bp') || '<span style="color:var(--bad)">no BI partner</span>'}</td><td>${CERT[o.cert]}<small class="s">${why(o)}</small></td><td>${term(o)}</td><td>${sigs(o)}</td></tr>`).join('') || '<tr><td colspan="7" style="color:var(--ink3)">queue is empty</td></tr>'}
+    </tbody></table></div>
+    <div class="gap">Data catalog and Dashboards keep certification states separately; the portal shows one lifecycle. Certified lineage starts with the company's key reports.</div></div>`;
+}
+
+// ---------- Answers ----------
+function pageAns(r) {
+  const subs = SUBS.filter(d => d.all.n && (!r.q.d || d.l1 === r.q.d) && (r.q.s == null || +r.q.s === d.i) && (r.q.m !== '1' || MINE.includes(d)));
+  const U = { subs, t: { dm: [], met: [], dash: [] } }, P = Object.fromEntries(score4(U).p0.map(c => [c.key, c])), R = drivers(U);
+  const row = d => { const a = d.v4.p0.find(c => c.key === 'gold'), h = d.v4.p0.find(c => c.key === 'real'), x = drivers(d), A = SUBS[d.i] && ansOf(d);
+    return `<tr onclick="location.hash='#/s/${d.i}/ards'"><td class="nm">${d.l2}<small>${d.l1}</small></td><td class="num">${A[0] || '—'}</td><td class="num ${A[0] >= GOLD_MIN ? attC(a.att) + 't' : ''}">${A[0] >= GOLD_MIN ? pcx(a.fact) : '<small class="s">under 50</small>'}</td>
+      <td class="num">${A[2] || '—'}</td><td class="num">${A[2] >= HELD_MIN ? pcx(h.fact) : '<small class="s">under 20</small>'}</td><td class="num">${A[2] >= HELD_MIN ? `${h.fact >= h.base ? '+' : ''}${Math.round((h.fact - h.base) * 100)} pp` : '—'}</td>
+      <td class="num">${A[0] >= GOLD_MIN ? pcx(x.cover) : '—'}</td><td class="num">${pcx(x.trusted)}</td><td class="num ${x.fb.bal < 0 ? 'badt' : ''}">${x.fb.n ? `${x.fb.bal > 0 ? '+' : ''}${x.fb.bal}<small class="s">${x.fb.n} reviews</small>` : '—'}</td></tr>`; };
+  return topHtml('<a href="#/">AI readiness</a> / <b>Answers</b>') + `<div class="page"><div class="hrow"><div class="grow"><h1>Answers</h1><p class="sub">Two measures of the agent with the domain knowledge pack. The golden set checks that the agent knows what the pack says: it has a threshold, ${pcx(GOLD_TH[0].v)} in ${GOLD_TH[0].q} and ${pcx(GOLD_TH[1].v)} from Q3. The held-out sample of real questions from traces, threads and requests shows growth from the baseline. Golden questions are removed from the pack during a run. Values are generated for the demo.</p></div></div>
+    <div class="kpis">
+      <div class="kpi hero sc"><span>Golden set<em>correct answers</em></span><div class="hv"><b>${pcx(P.gold.fact)}</b><small class="hk">threshold ${pcx(GOLD_TH[0].v)}</small></div><div class="goal"><i style="width:${Math.min(100, (P.gold.fact || 0) * 100)}%;background:var(--ink)"></i></div><small>${subs.filter(d => ansOf(d)[0] >= GOLD_MIN).length} of ${subs.length} subdomains have ${GOLD_MIN}+ questions</small></div>
+      <div class="kpi"><span>Real questions</span><b>${pcx(P.real.fact)}</b><small>baseline ${pcx(P.real.base)} · ${fmt(P.real.n)} questions</small></div>
+      <div class="kpi"><span>Golden set coverage</span><b>${pcx(R.cover)}</b><small>top objects in golden SQL</small></div>
+      <div class="kpi"><span>On trusted objects</span><b>${pcx(R.trusted)}</b><small>share of answers</small></div>
+      <div class="kpi"><span>Feedback balance</span><b class="${R.fb.bal < 0 ? 'badt' : ''}">${R.fb.bal == null ? '—' : (R.fb.bal > 0 ? '+' : '') + R.fb.bal}</b><small>${R.fb.n} reviews · ${R.fb.inst} of ${R.fb.p} problems are about installing and reading the pack</small></div></div>
+    <div class="filters">${mineBtn(r)}${domSel(r)}${scopeNote(r)}<span class="cnt">${subs.length}</span></div>
+    <div class="card tw"><table class="tbl"><thead><tr><th>${S.l2.one}</th><th class="num">Golden questions</th><th class="num">Golden pass</th><th class="num">Held-out</th><th class="num">Held-out pass</th><th class="num">vs baseline</th><th class="num">Coverage</th><th class="num">Trusted</th><th class="num">Feedback</th></tr></thead><tbody>
+      ${[...subs].sort((a, b) => (ansOf(b)[0] >= GOLD_MIN) - (ansOf(a)[0] >= GOLD_MIN) || (b.v4.p0[2].fact ?? 0) - (a.v4.p0[2].fact ?? 0)).map(row).join('')}</tbody></table></div>
+    <div class="gap">Golden pass is a threshold, so a high value does not mean the agent handles new questions: compare it with the held-out sample. Small subdomains may not collect 20 real questions a month; they show no held-out value.</div></div>`;
+}
+// work by role in a subdomain cabinet: every role gets its own queue
+function roleCard(d) { const q = scopeQ(d), all = objsOf(d), x = d.v4.drv;
+  const own = all.filter(o => !o.h && o.slo != null && o.cause !== 3).length, due = all.filter(o => !o.ad && o.admLeft >= 0 && o.admLeft <= 3).length;
+  const certQ = x.cand + x.recert + x.lapsed, metAdm = d.t.met.filter(o => !o.ad).length, g = d.v4.p0.find(c => c.key === 'gold');
+  const box = (role, title, big, sub, href) => `<a class="rc" href="${href}"><span>${role}</span><b>${big}</b><em>${title}</em><small>${sub}</small></a>`;
+  return `<div class="ovsec"><h2>Work by role</h2><span>each role has its queue; the digest is built from the same queues</span></div>
+    <div class="rcs">${box('Data owner', 'SLO breaches', fmt(own), `${due} objects lose publication within 3 days`, `#/health?${q}`)}
+      ${box('BI partner', 'certification decisions', fmt(certQ), `${x.cand} candidates, ${x.recert} recertifications, ${x.lapsed} not confirmed`, `#/cert?${q}`)}
+      ${box('Metrics curator', 'metrics failing admission', fmt(metAdm), `measures covered by healthy metrics ${pcx(d.v4.p0.find(c => c.key === 'sem').fact)}`, `#/adm?${q}&t=met`)}
+      ${box('AI champion', 'golden set pass', g.n ? pcx(g.fact) : '—', `${g.n || 0} questions · feedback ${x.fb.bal == null ? '—' : x.fb.bal}`, `#/ans?${q}`)}</div>`; }
+// AI-Ready card of a cabinet under the 2027 method
+function v4Card(d, full = false) {
+  if (d.level == null) return '';
+  const V = d.v4, L = d.level, next = L < 4 ? V.rules[L] : null;
+  const pills = LEVEL_NAMES.map((n, i) => `<span class="lp${i < L ? ' done' : i === L ? ' cur' : ''}">${n}</span>`).join('');
+  const row = c => `<div class="cr${c.inMin ? '' : ' w'}"><span class="cn">${c.name}<small>${c.inMin ? 'in the minimum' : 'by readiness'}</small></span><b>${c.none ? '—' : pcx(c.fact)}</b><span class="cp">${c.key === 'real' ? (c.base == null ? '—' : `${pcx(c.base)} + 10 pp`) : pcx(c.target)}</span>
+    <span class="cdn">${c.none ? '<span class="cdw nx">no objects, not counted</span>' : c.att == null ? `<span class="cdw">${c.note || 'no data'}</span>` : `<span class="cdb"><i style="width:${Math.min(100, c.att)}%;background:var(--${attC(c.att)})"></i></span><em>${Math.round(c.att)}%</em>`}</span></div>`;
+  return `<div class="card ards3">
+    <div class="ah"><b>Level</b><div class="lps">${pills}</div>${full ? '' : `<a href="#/s/${d.i}/ards">method and comparison →</a>`}</div>
+    <div class="atot"><div class="ai1 sc"><span>AI-Ready score</span><b>${V.score ?? '—'}</b><small>${d.subs ? 'mean of subdomains' : `min of P0 in the minimum${V.weakest ? ` · set by ${V.weakest.name.toLowerCase()}` : ''}`}</small></div><div class="ai1 pl"><span>Rank</span>${d.aiRank ? `<b>${d.aiRank}</b><small>of ${d.rankN ?? AI_RANKED}</small>` : '<b>—</b>'}</div>
+      ${next ? `<div class="anext"><span class="lt">For ${LEVEL_NAMES[L + 1]}</span><div class="ck">${next.map(r => `<div class="${r.ok ? 'y' : 'n'}"><i>${r.ok ? '✓' : '×'}</i><span>${r.name}${r.ok ? '' : ` <em>now ${r.now}</em>`}</span></div>`).join('')}</div></div>` : '<div class="anext"><span class="lt">Top level</span></div>'}</div>
+    <div class="crs">${'<div class="cr ch"><span>P0 metric</span><span>actual</span><span>target</span><span>attained</span></div>'}${V.p0.map(row).join('')}</div>
+    <div class="ctr"><span>Counter-metrics, outside the minimum:</span> AI use by non-analysts <b>${pcx(V.cnt.jtbd)}</b> · useful load per CPU hour <b>${V.cnt.load == null ? '—' : n1(V.cnt.load)}</b> (hypothesis)</div></div>`; }
+function subArds4(d) { const q = scopeQ(d);
+  return `${v4Card(d, true)}
+    <div class="sec"><h2>Metric tree</h2><span>${d.subs ? 'pooled over the domain' : 'this subdomain'} · click a card for its queue</span></div>
+    ${treeHtml({ s: d.v4, drv: d.v4.drv, cnt: d.v4.cnt, t: d.t }, q)}
+    <div class="sec"><h2>How P0 are computed</h2><span>attainment = min(100%, actual / target), ${WINDOW}-day window, Tier 0–2</span></div>
+    <div class="card gaps">${P0.map(p => `<div class="gp"><b>${p[2]}</b>${p[5] ? '<span class="okc">in the minimum</span>' : '<span class="prx">by readiness</span>'}<p>${p[4]}.</p></div>`).join('')}</div>
+    <div class="sec" id="rocmp"><h2>Comparison</h2><span>${d.aiRank ? `score ${d.v4.score}, rank ${d.aiRank} of ${d.rankN ?? AI_RANKED}; ` : ''}x: the weaker of data marts and semantic coverage, y: golden set</span></div>
+    ${roChart(d.subs ? DOMV : SUBS, d)}`; }
+
 function parse() {
   const [path, qs] = (location.hash.slice(1) || '/').split('?'), p = path.split('/').filter(Boolean), q = Object.fromEntries(new URLSearchParams(qs || ''));
   // old addresses of embedded 3D modes (#/valley, #/map, #/s/<i>/3d, #/s/<i>/factory) redirect to game pages
   if (p[0] === 'valley' || p[0] === 'map') return { page: 'go', url: q.u ? S.game.redirect.l1(q) : S.game.redirect.home() };
-  if (p[0] === 'hot') return { page: 'hot', q };
+  if (p[0] === 'hot' || p[0] === 'health') return { page: 'health', q };
+  if (p[0] === 'adm') return { page: 'adm', q };
+  if (p[0] === 'cert') return { page: 'cert', q };
+  if (p[0] === 'ans') return { page: 'ans', q };
   if (p[0] === 'me') return { page: 'me', q };
   if (p[0] === 'digest') return { page: 'digest', q };
   if (p[0] === 'd' && domOf(dec(p[1] || ''))) return { page: 'dom', dom: domOf(dec(p[1])), tab: p[2] || '', q };
@@ -880,19 +1115,22 @@ function route() {
   if (r.page === 'go') { location.replace(r.url); return; }
   navHtml(r); closeDrawer();
   let out = { html: '' };
-  if (r.page === 'hot') out.html = pageHot(r);
+  if (r.page === 'health') out.html = pageHealth(r);
+  else if (r.page === 'adm') out.html = pageAdm(r);
+  else if (r.page === 'cert') out.html = pageCert(r);
+  else if (r.page === 'ans') out.html = pageAns(r);
   else if (r.page === 'me') out.html = pageMe();
   else if (r.page === 'digest') out.html = pageDigest();
   else if (r.page === 'dom') out.html = pageDom(r.dom, r.tab, r);
   else if (r.page === 'new') out.html = pageNew();
   else if (r.page === 'onb') out.html = pageOnb(r.sub);
   else if (r.page === 'sub') out = pageSub(r.sub, r.tab, r);
-  else out.html = pageHome();
+  else out.html = pageReady();
   const keepFocus = document.activeElement?.id === 'fq' && path === lastPath;
   main.className = 'main'; main.innerHTML = out.html; applyDefs(main);
   // small footer: market references the screen was built on
   { const SUBREF = { '': ['D1', 'D6', 'G4'], ards: ['G4'], ai: ['D2'], met: ['D3'], gl: ['D10'], dm: ['D4', 'G1'], dash: ['D5'], ops: ['G1', 'G2', 'G3'], infra: ['F3'] };
-    const ids = r.page === 'home' ? ['B1', 'B2', 'B3', 'G4'] : r.page === 'hot' ? ['B3'] : r.page === 'me' ? ['B4'] : r.page === 'digest' ? ['G5'] : r.page === 'onb' ? ['D7', 'D8'] : r.page === 'new' ? ['A1', 'C1']
+    const ids = r.page === 'home' ? ['B1', 'B2', 'G4'] : ['health', 'adm', 'cert'].includes(r.page) ? ['B3', 'G1'] : r.page === 'ans' ? ['D2'] : r.page === 'hot' ? ['B3'] : r.page === 'me' ? ['B4'] : r.page === 'digest' ? ['G5'] : r.page === 'onb' ? ['D7', 'D8'] : r.page === 'new' ? ['A1', 'C1']
       : r.page === 'dom' ? (r.tab === 'infra' ? ['F3', 'C1'] : r.tab ? (SUBREF[r.tab] || ['C1']) : ['C1', 'C2', 'G4']) : r.page === 'sub' ? (SUBREF[r.tab] || ['D1']) : ['A1'];
     const pg = main.querySelector('.page'); if (pg) refFooter(ids, pg); }
   // agent: on one object or on the first ten issues of a list
@@ -908,6 +1146,7 @@ function route() {
   main.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => location.hash = `#/s/${r.sub.i}${el.dataset.tab ? '/' + el.dataset.tab : ''}`);
   main.querySelectorAll('[data-f]').forEach(b => b.onclick = () => setQ({ f: b.dataset.f }));
   main.querySelectorAll('[data-hot]').forEach(b => b.onclick = () => setQ({ t: b.dataset.hot }));
+  main.querySelectorAll('[data-q]').forEach(b => b.onclick = e => { e.stopPropagation(); const [k, ...v] = b.dataset.q.split('='); setQ({ [k]: decodeURIComponent(v.join('=')) }); });
   main.querySelectorAll('[data-mine]').forEach(b => b.onclick = () => setQ({ m: b.dataset.mine }));
   main.querySelectorAll('th[data-s]').forEach(h => h.onclick = () => setQ({ s: h.dataset.s }));
   main.querySelectorAll('tr[data-s]').forEach(t => t.onclick = () => { location.hash = `#/s/${t.dataset.s}`; });
