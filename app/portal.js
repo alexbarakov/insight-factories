@@ -86,11 +86,11 @@ const DEFS = [
   ['AI-Ready points', 'Each day a subdomain earns its AI-Ready score (0–100) / 100 × user-days of that day; a domain gets the sum of its subdomains. Domains are compared on the 30-day total.'],
   ['Context', 'Context for AI is component 1.4 Domain knowledge: logic to be defined, not part of the score yet.'],
   ['Evals', 'Evals are component 2.1 Answer quality: share of correct answers by the AI assistant on the subdomain golden set (30 or more questions from real threads); correctness is set by a judge model plus human spot checks. Values are generated for the demo.'],
-  [S.health.name, 'Share of objects (metrics, data marts and dashboards) that pass every health score check.'],
-  [S.kind.met, 'Semantic Layer metrics: healthy share by health score (description, owner, usage, live sources, data).'],
-  [S.kind.dm, 'Data marts: healthy share by health score (builds in the warehouse, owner, table and column descriptions, business checks, live sources).'],
-  [S.kind.dash, 'Dashboards: healthy share by health score (speed, errors, owner, built on datasets, certified datasets, description and README).'],
-  ['Issues', 'Popular objects that fail the health score: they are opened most often, so fix them first.'],
+  [S.health.name, 'Share of Tier 0–2 objects (metrics, data marts and dashboards) that met their SLO on enough of the last 28 days for their tier, with no breach caused by the object, a source or the platform.'],
+  [S.kind.met, 'Semantic Layer metrics: healthy share by SLO (the value appeared on time, recompute without errors).'],
+  [S.kind.dm, 'Data marts: healthy share by SLO (ready on time, standard platform checks and critical checks pass, no confirmed incidents).'],
+  [S.kind.dash, 'Dashboards: healthy share by SLO (opens without errors, 90% of opens within 20 s). A dashboard is no healthier than its source data mart.'],
+  ['Issues', 'Popular objects that breach their SLO: they are opened most often, so fix them first.'],
   ['CPU', 'CPU hours over 30 days from platform billing: building data marts and metrics.'],
   [S.bp.kpi, 'Subdomains without an assigned BI partner in the Domain Registry.'],
   ['Data marts on time', 'Share of scheduled data marts refreshed on time (freshness_score in the Data Catalog).'],
@@ -100,7 +100,7 @@ const DEFS = [
   ['AI Ready', 'Legacy AI Ready points 0–14 from the BI partner analysis. Not used in the AI-Ready Domains Score, kept for comparison.'],
   ['Infra savings', 'CPU over 30 days that can be saved: switch off data marts without consumers and unused metrics, optimize data marts that are expensive per use.'],
   ['Blast radius', 'How many dashboards read the unhealthy data marts of the subdomain.'],
-  ['Trend', 'Change in the share of healthy objects over 8 weeks, from health score snapshots.'],
+  ['Trend', 'Change in the share of healthy objects over 8 weeks: weekly snapshots scaled to the current SLO health.'],
 ];
 const KEY_OF = Object.fromEntries(Object.entries(CODE).map(([k, c]) => [c, k]));
 const defOf = t => { t = t.trim(); const m = /^(\d\.\d)(?!\d)/.exec(t); if (m && KEY_OF[m[1]]) return ARDS_DEF[KEY_OF[m[1]]]; const d = DEFS.find(([k]) => k && t.startsWith(k)); return d ? d[1] : null; };
@@ -239,7 +239,7 @@ function pageHome() {
     </tbody></table></div>
     <div class="sec"><h2>Top issues</h2><a href="#/hot" style="font-size:12.5px;color:var(--ink2)">all ${fmt(ALL.hot)}</a></div>
     <div class="card list">${hot.map(o => objItem(o, true)).join('')}</div>
-    <div class="gap">An issue is an object more popular than 75% of objects of its type that fails the health score. Fixing these pays off most.</div>
+    <div class="gap">An issue is an object more popular than 75% of objects of its type that breaches its SLO. Fixing these pays off most.</div>
     ${nomsBoard()}
     ${econOverview()}</div>`;
 }
@@ -249,23 +249,23 @@ function pageHome() {
 const px4 = d => { const P = d.v4?.p0; if (!P) return null; const a = P[0].none ? null : P[0].att, b = P[1].att; return a == null && b == null ? null : Math.round(Math.min(a ?? 100, b ?? 100)); };
 const py4 = d => d.v4?.p0[2].fact == null || !d.v4.p0[2].n ? null : Math.round(d.v4.p0[2].fact * 100);
 function roChart(list, focus = null) { const pts = list.filter(d => px4(d) != null && py4(d) != null && d.all.n);
-  if (!pts.length) return ''; const W = 1000, H = 400, L = 46, Rt = 20, T = 14, B = 40, X = v => L + v / 100 * (W - L - Rt), Y = v => H - B - v / 100 * (H - T - B);
+  if (!pts.length) return ''; const W = 1000, H = 400, L = 62, Rt = 96, T = 30, B = 40, X = v => L + v / 100 * (W - L - Rt), Y = v => H - B - v / 100 * (H - T - B);
   const mx = Math.max(...pts.map(d => d.ud30 || 0), 1), rad = d => 4 + 26 * Math.sqrt((d.ud30 || 0) / mx), col = ['var(--lv0)', 'var(--lv1)', 'var(--lv2)', 'var(--lv3)', 'var(--lv4)'];
   const ticks = [0, 20, 40, 60, 80, 100], placed = [];
   const fo = focus && pts.includes(focus) ? focus : null, op = d => !fo || d === fo ? '' : d.l1 === fo.l1 ? ' style="fill-opacity:.55"' : ' style="fill-opacity:.16"';
   if (fo) { const x = X(px4(fo)), y = Y(py4(fo)) - rad(fo) - 4, w = fo.l2.length * 6.4; placed.push([x - w / 2, y - 12, x + w / 2, y]); }
-  const labels = [...pts].sort((a, b) => (b.ud30 || 0) - (a.ud30 || 0)).filter(d => !fo || d.l1 === fo.l1 && d !== fo).slice(0, 14).map(d => { const x = X(px4(d)), y = Y(py4(d)) - rad(d) - 4, w = d.l2.length * 6.4, r = [x - w / 2, y - 12, x + w / 2, y];
+  const labels = [...pts].sort((a, b) => (b.ud30 || 0) - (a.ud30 || 0)).filter(d => !fo || d.l1 === fo.l1 && d !== fo).slice(0, 14).map(d => { const w = d.l2.length * 6.4, x = Math.min(W - w / 2 - 2, Math.max(L + w / 2, X(px4(d)))), y = Math.max(14, Y(py4(d)) - rad(d) - 4), r = [x - w / 2, y - 12, x + w / 2, y];
     if (placed.some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1])) return ''; placed.push(r); return `<text x="${x}" y="${y}" class="bl">${d.l2}</text>`; }).join('');
   return `<div class="card rochart"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Prerequisites against golden set answers by subdomain">
     ${ticks.map(t => `<line x1="${X(t)}" x2="${X(t)}" y1="${T}" y2="${H - B}" class="g"/><line x1="${L}" x2="${W - Rt}" y1="${Y(t)}" y2="${Y(t)}" class="g"/><text x="${X(t)}" y="${H - B + 16}" class="tk" text-anchor="middle">${t}</text><text x="${L - 8}" y="${Y(t) + 4}" class="tk" text-anchor="end">${t}</text>`).join('')}
     <line x1="${X(0)}" y1="${Y(GOLD_TH[0].v * 100)}" x2="${X(100)}" y2="${Y(GOLD_TH[0].v * 100)}" class="dg"/>
-    <text x="${X(1)}" y="${Y(GOLD_TH[0].v * 100) - 6}" class="zn">golden set threshold ${Math.round(GOLD_TH[0].v * 100)}%</text>
-    <text x="${(L + W - Rt) / 2}" y="${H - 6}" class="ax" text-anchor="middle">Prerequisites: the weaker of AI-ready data marts and semantic coverage, attained →</text><text x="12" y="${(T + H - B) / 2}" class="ax" text-anchor="middle" transform="rotate(-90 12 ${(T + H - B) / 2})">Golden set, correct answers % →</text>
+    <text x="${X(100) + 34}" y="${Y(GOLD_TH[0].v * 100) - 3}" class="zn">threshold</text><text x="${X(100) + 34}" y="${Y(GOLD_TH[0].v * 100) + 11}" class="zn">${Math.round(GOLD_TH[0].v * 100)}%</text>
+    <text x="${(L + W - Rt) / 2}" y="${H - 6}" class="ax" text-anchor="middle">Prerequisites: the weaker of AI-ready data marts and semantic coverage, attained →</text><text x="16" y="${(T + H - B) / 2}" class="ax" text-anchor="middle" transform="rotate(-90 16 ${(T + H - B) / 2})">Golden set, correct answers % →</text>
     ${[...pts].sort((a, b) => (b.ud30 || 0) - (a.ud30 || 0)).map(d => { const c = `<circle cx="${X(px4(d))}" cy="${Y(py4(d))}" r="${rad(d)}" fill="${col[d.level ?? 0]}" class="bb${d === fo ? ' fo' : ''}${fo ? ' nt' : ''}"${op(d)}`;
       // in compare mode a bubble does not open the cabinet, it shows a tooltip
       return fo ? `${c} data-tip="${enc(JSON.stringify([d.l2, d.l1, px4(d), py4(d), d.ards.idx, LEVEL_NAMES[d.level ?? 0], fmtK(d.ud30 || 0), d.aiRank || null]))}"/>`
         : `<a href="#/s/${d.i}">${c}><title>${d.l2} (${d.l1}) · prerequisites ${px4(d)}, golden set ${py4(d)}, score ${d.ards.idx} · ${LEVEL_NAMES[d.level ?? 0]} · usage ${fmtK(d.ud30 || 0)}</title></circle></a>`; }).join('')}
-    ${labels}${fo ? `<text x="${X(px4(fo))}" y="${Y(py4(fo)) - rad(fo) - 4}" class="bl fo">${fo.l2} · ${fo.ards.idx}</text>` : ''}</svg>
+    ${labels}${fo ? `<text x="${Math.min(W - fo.l2.length * 4 - 2, X(px4(fo)))}" y="${Math.max(14, Y(py4(fo)) - rad(fo) - 4)}" class="bl fo">${fo.l2} · ${fo.ards.idx}</text>` : ''}</svg>
     ${fo ? '<div class="rotip" hidden></div>' : ''}<div class="rolg">${LEVEL_NAMES.map((n, i) => `<span><i style="background:${col[i]}"></i>${n}</span>`).join('')}<span class="mut">${fo ? `${fo.l2} highlighted, ${fo.l1} subdomains brighter; ` : ''}subdomains without a golden set of 50+ questions are not shown; the score is at most the lower of the two attainments</span></div></div>`; }
 const p0 = v => v == null ? '—' : Math.round(v * 100) + '%';
 // distribution of AI-Ready levels; L2–L4 depend on the result axis, generated for the demo

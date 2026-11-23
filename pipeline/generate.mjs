@@ -390,14 +390,14 @@ for (let i = 0; i < G_DD.length; i += 2) { const a = SIG[G_DD[i]], b = SIG[G_DD[
   if (a[2] && a[0] < 3 && !b[2] && b[1] != null && b[0] < 3 && c2(0.6)) { b[1] = Math.min(b[1], a[1]); b[2] = 2; b[3] = a[3]; if (b[6] === 2 && c2(0.1)) b[6] = 2; } }
 // answers per subdomain: [golden questions, golden pass, held-out questions, held-out pass, held-out baseline, golden coverage, feedback useful, problem, total, install and read problems, answers on trusted objects]
 const ANS = SUBS.map(s => { if (s.empty) return null; const mat = s.d.mat, sk = s.skill;
-  const gN = sk ? i2(50, 170) : c2(0.65) ? i2(50, 90) : c2(0.5) ? i2(10, 49) : 0, gP = gN ? Math.min(0.94, u2(0.42, 0.7) + 0.18 * mat + (sk ? 0.06 : 0)) : null;
+  const gN = sk ? i2(50, 170) : c2(0.65) ? i2(50, 90) : c2(0.5) ? i2(10, 49) : 0, gP = gN ? Math.min(0.94, u2(0.34, 0.7) + 0.2 * mat + (sk ? 0.04 : 0)) : null;
   const hN = Math.round(u2(0, 1) * (sk ? 70 : 25) * (0.4 + mat)), base = hN ? u2(0.02, 0.18) + 0.12 * mat : null, hP = hN ? Math.min(0.8, base + u2(-0.03, 0.14) * (sk ? 1.3 : 0.6)) : null;
   const fT = sk ? i2(0, 45) : i2(0, 6), fP = Math.round(fT * u2(0.35, 0.85)), fU = Math.min(fT - fP, Math.round(fT * u2(0.05, 0.4))), fI = Math.round(fP * u2(0.3, 0.65));
   return [gN, gP == null ? null : Math.round(gP * 1000) / 1000, hN, hP == null ? null : Math.round(hP * 1000) / 1000, base == null ? null : Math.round(base * 1000) / 1000,
     gN ? Math.round(u2(0.08, 0.5 + 0.35 * mat) * 1000) / 1000 : 0, fU, fP, fT, fI, Math.round(u2(0.1, 0.35 + 0.4 * mat) * 1000) / 1000]; });
 // key measures in domain calculations: [measures found in consumed data marts and report datasets, consumption-weighted share represented by a healthy Semantic Layer metric]
 const SEM = SUBS.map(s => { if (s.empty) return null; const met = bySubType[s.i][1], hm = met.length ? met.filter(k => SIG[k][2] === 0 && SIG[k][1] != null).length / met.length : 0;
-  return [i2(12, 140), Math.round(clamp(u2(0.05, 0.2) + hm * u2(0.35, 1.0) + (s.l1 === 'Core' ? 0.15 : 0), 0, 0.95) * 1000) / 1000]; });
+  return [i2(12, 140), Math.round(clamp(u2(0.05, 0.2) + hm * u2(0.3, 0.85) + (s.l1 === 'Core' ? 0.15 : 0), 0, 0.95) * 1000) / 1000]; });
 // readiness of the two P0 metrics that enter the minimum later: days of daily computation without gaps, share of objects tagged by domain, baseline published
 const READY = { real: { days: 19, tagged: 0.62, baseline: false }, reports: { days: 28, tagged: 0.86, baseline: true } };
 
