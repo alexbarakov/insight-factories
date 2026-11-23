@@ -102,8 +102,8 @@ The base is SKOS: a term is a `skos:Concept`, a subdomain glossary is a `skos:Co
 | `sliced_by` / `is_dimension` | term → dimension | — | "Category" → dimension `category` |
 | `stored_in` | term → column | dbt: concept on a column | "Category" → `item_stats.category_id` |
 | `grain_of` | term → data mart | — | "Listing" is the grain of `listings_daily` |
-| `described_in` | term → Wiki page | `skos:note` + link | definition from the "Goods glossary" page |
-| `close_match` | term → term of another scheme | `skos:closeMatch` | "Lead" in Auto ≈ "Lead" in Real Estate, with different definitions |
+| `described_in` | term → Wiki page | `skos:note` + link | definition from the "Clinics glossary" page |
+| `close_match` | term → term of another scheme | `skos:closeMatch` | "Referral" in Clinics ≈ "Referral" in Marketing, with different definitions |
 
 ### Term statuses
 
@@ -281,7 +281,7 @@ Three graph layers, one term at the crossing:
    "Buyer"
       │ described_in
       ▼
-   Wiki: "Goods glossary", section 2
+   Wiki: "Clinics glossary", section 2
 ```
 
 - **Term → metric.** The main link for agents: the question "how many active buyers" resolves to a term, the term to an approved metric. The metric card in the portal (D3, D9) gets a "Terms: …" line.
@@ -306,7 +306,7 @@ Three columns, as in the links window: the list on the left, the graph in the ce
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│ Overview / Goods / Buyers                                           [Cabinet] [Factory] [Links]            │
+│ Overview / Clinics / Primary Care                                           [Cabinet] [Factory] [Links]            │
 │ Buyers   Health 71% ▲3    AI-Ready L1    BI partner: assigned                                              │
 │ Overview · AI-Ready · Self-service AI · Metrics 214 · Glossary 86 (+23) · Data marts 41 · Dashboards 132   │
 ├──────────────────────────┬───────────────────────────────────────────────┬─────────────────────────────────┤
@@ -322,7 +322,7 @@ Three columns, as in the links window: the list on the left, the graph in the ce
 │ ● Listing view           │ │   ○ buyers_active_dau  ○ buyers_active_mau│ │────────────────────────────────│
 │ ◌ Shopper  candidate 0.8 │ │   ●healthy          ●unhealthy            │ │ Sources (3)                    │
 │ ◌ Lead     conflict   !  │ │          │ sliced_by                       │ │ "…we count as active…" ↗       │
-│ ● Category               │ │          ◎ category      ▭ Goods glossary  │ │   Goods glossary, sec. 2       │
+│ ● Category               │ │          ◎ category      ▭ Clinics glossary  │ │   Clinics glossary, sec. 2       │
 │ ○ Order    stale      ⟳  │ └───────────────────────────────────────────┘ │ + 2 more                       │
 │ …                        │ Hover — neighbors; click — card;              │────────────────────────────────│
 │ [ In review 23 → ]       │ double-click — focus on the node              │ Metrics          Columns       │
@@ -366,7 +366,7 @@ Three columns, as in the links window: the list on the left, the graph in the ce
 Block order:
 1. Name, status badge, key flag (star), synonyms and abbreviations.
 2. Owner, who approved it and when, "approved by the business" for key terms.
-3. Definition, example, scope note ("Auto counts this differently — see …").
+3. Definition, example, scope note ("Telehealth counts this differently — see …").
 4. Sources: quote, page, section, page edit date, link; if the source changed after approval, a warning and a diff.
 5. Related concepts: broader, narrower, related, depends on.
 6. Metrics and dimensions with health and usage; columns and data marts with health; suggested links in a separate group with buttons for those who have rights.
@@ -384,7 +384,7 @@ Block order:
 │ ! Lead             conflict  │────────────────────────────────────────────────│
 │ ◌ Paid promotion   0.64      │ Definition (suggested by LLM, explicit)        │
 │ ◌ Response         0.58      │ [A user who views listings and writes to      ]│
-│ ⟳ Order           source     │ [sellers in Goods categories.                 ]│
+│ ⟳ Order           source     │ [patients in Clinics specialties.                 ]│
 │   changed                    │                                                │
 │ …                            │ Quotes (2 pages)                               │
 │                              │ "A shopper is a user who…" ↗                   │
@@ -414,7 +414,7 @@ Block order:
 │ Option 1                            │ Option 2                             │
 │ "A lead is a buyer contacting a     │ "We count a call or chat as a lead   │
 │  seller through chat or a call"     │  after 30 seconds…"                  │
-│ Goods glossary ↗  edited Aug 3, 2026│ Seller ROI method ↗  edited 2025     │
+│ Clinics glossary ↗  edited Aug 3, 2026│ Visit cost method ↗  edited 2025     │
 │ nearby: metric contacts_total       │ nearby: metric leads_quality         │
 ├─────────────────────────────────────┴──────────────────────────────────────┤
 │ ( ) Keep option 1   ( ) Keep option 2   ( ) Write a common one             │

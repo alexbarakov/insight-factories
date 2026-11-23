@@ -69,7 +69,7 @@ for (const g of ufGroups.values()) {
     title: ext ? `${top.o.name} · ${top.sub.l2}` : rootN.length > 1 ? `${rootN.length} unhealthy data marts feed shared dashboards` : top.o.name,
     what: `${otch(dash.size)} downstream${ownDash !== dash.size ? `, ${ownDash} of them own` : ''}, ${fmt(views(dash))} views.${f.length ? ` Failed: ${f.join(', ').toLowerCase()}.` : ' Visible checks pass — other health score components fall short.'}`,
     act: ext ? `Message the BI partner of ${top.sub.l2}: your dashboards depend on their data mart. While it is being fixed, mark the dashboards as outdated in Dashboards.`
-      : `Fix ${top.o.name} first: it is the top of the breakage${rootN.length > 1 ? `, then ${rootN.slice(1, 3).map(n => n.o.name).join(', ')}` : ''}. After the health score recompute the dashboards downstream recover.`,
+      : `Fix ${top.o.name} first: it is the top of the breakage${rootN.length > 1 ? `, then ${rootN.slice(1, 3).map(n => n.o.name).join(', ')}` : ''}. Once its SLO recovers, the dashboards downstream recover too.`,
     go: ext ? null : fx || TOOL[top.o.t](top.o)[0] }); }
 // 2. dashboards broken on their own: an unhealthy dashboard whose source data marts are all healthy
 const selfBad = nodes.filter(n => n.t === 'dash' && !n.ext && bad(n) && n.inn.length && n.inn.every(e => !bad(e.a))).sort((a, b) => b.o.pop - a.o.pop);

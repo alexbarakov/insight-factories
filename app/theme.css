@@ -1,4 +1,4 @@
-/* Harbor Market · Insight Factories — design tokens.
+/* Harbor Health · Insight Factories — design tokens.
    Single source of colors, fonts, radii and shadows for every page.
    Light theme on :root; dark theme via prefers-color-scheme (unless data-theme="light") or data-theme="dark".
    JS reads these with getComputedStyle(document.documentElement).getPropertyValue('--name'). See docs/design-tokens.md. */

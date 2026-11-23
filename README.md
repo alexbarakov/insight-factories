@@ -5,7 +5,7 @@
 
 An observability module for domain data governance. For each business domain and subdomain it shows the state of the data, an AI-Ready score with two axes, the causes behind the score and the tasks that move it. An optional game layer shows each subdomain as a factory and the company as a world of factories.
 
-This repository is a demo on synthetic data for **Harbor Market**, a fictional online marketplace and classifieds platform. No real company, people or production data are involved: every number comes from `pipeline/generate.mjs`.
+This repository is a demo on synthetic data for **Harbor Health**, a fictional network of clinics with telehealth, labs and pharmacies. No real company, people or production data are involved: every number comes from `pipeline/generate.mjs`.
 
 ## Who it is for
 
@@ -37,7 +37,7 @@ Open http://localhost:8080/. The generator is deterministic: the same seed gives
 | `app/data/` | Generated synthetic data modules (domains, objects, people, trends, operations, cost, lineage) |
 | `app/vendor/` | three.js (MIT) for the 3D pages |
 | `app/docs` | Symlink to `docs/`, so `doc.html` can show the docs |
-| `pipeline/generate.mjs` | Synthetic data generator for Harbor Market |
+| `pipeline/generate.mjs` | Synthetic data generator for Harbor Health |
 | `docs/functional-blocks.md` | Specification: functional blocks A1–G5 with requirements, status and references |
 | `docs/references.md` | Market references by block, built by `python3 docs/build_refs.py` |
 | `docs/glossary-kg-design.md` | Design note for the glossary as a knowledge graph |

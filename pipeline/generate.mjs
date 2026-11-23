@@ -1,4 +1,4 @@
-// Synthetic data generator for the Insight Factories open demo (fictional company "Harbor Market").
+// Synthetic data generator for the Insight Factories open demo (fictional company "Harbor Health").
 // Writes every module the app imports from app/data/: data.js, names.js, trend.js, ops.js, infra.js, cost.js, graph.js, keymet.js, o3.js.
 // Node 20+, ESM, no dependencies. Deterministic: the same seed gives byte-identical output.
 // Run from anywhere:  node pipeline/generate.mjs [seed]
@@ -40,63 +40,63 @@ const PERIOD = 'Sep 13 – Oct 12, 2026';
 // mix — type multipliers [dash, met, dm]; ai — share of non-analysts using AI analytics; mon — share of data marts with business checkers;
 // cpu — infra intensity; pop — popularity multiplier; supply — weight as a cross-domain data supplier; gov — governance pattern
 const D = [
-  { l1: 'Goods', slug: 'goods', h: 0.44, drift: 0.02, vol: 1.6, mix: [1, 1, 1.1], ai: 0.24, mon: 0.42, cpu: 1.3, pop: 1.4, supply: 1.6, mat: 0.7,
-    ent: ['listing', 'item', 'seller', 'buyer', 'order', 'cart', 'category', 'price', 'stock', 'search', 'contact', 'view', 'favorite', 'shipment'],
-    subs: [['Marketplace', 'marketplace', ['order', 'cart', 'checkout_step']], ['Classifieds', 'classifieds', ['listing', 'contact', 'view']], ['Logistics', 'logistics', ['shipment', 'warehouse', 'stock']],
-      ['Catalog Quality', 'catalog', ['category', 'attribute', 'duplicate']], ['Seller Tools', 'seller_tools', ['seller', 'bulk_upload', 'feed']], ['Pricing Insights', 'pricing', ['price', 'discount', 'benchmark']]] },
-  { l1: 'Auto', slug: 'auto', h: 0.40, drift: 0.08, vol: 1.0, mix: [1, 0.9, 1], ai: 0.2, mon: 0.38, cpu: 1.0, pop: 1.0, supply: 0.4, mat: 0.6,
-    ent: ['car', 'vehicle', 'dealer', 'listing', 'lead', 'inspection', 'valuation', 'contact', 'view', 'model', 'brand'],
-    subs: [['Cars', 'cars', ['car', 'listing', 'brand']], ['Auto Parts', 'auto_parts', ['part', 'compatibility', 'order']], ['Dealers', 'dealers', ['dealer', 'lead', 'tariff']],
-      ['Vehicle History', 'vehicle_history', ['vin', 'report', 'mileage']], ['Commercial Vehicles', 'trucks', ['truck', 'machinery', 'lead']]] },
-  { l1: 'Real Estate', slug: 're', h: 0.39, drift: 0.0, vol: 1.0, mix: [1.1, 0.8, 1], ai: 0.18, mon: 0.3, cpu: 0.9, pop: 1.0, supply: 0.3, mat: 0.5,
-    ent: ['property', 'listing', 'lead', 'agency', 'viewing', 'contract', 'price', 'district', 'contact', 'view'],
-    subs: [['Rentals', 'rentals', ['rental', 'tenant', 'landlord']], ['Sales', 'property_sales', ['deal', 'apartment', 'house']], ['Short-Term Stays', 'stays', ['booking', 'host', 'guest', 'night']],
-      ['Agencies', 'agencies', ['agency', 'agent', 'tariff']], ['New Builds', 'new_builds', ['developer', 'project', 'lead']], ['Mortgages', 'mortgages', ['mortgage', 'application']]] },
-  { l1: 'Jobs', slug: 'jobs', h: 0.38, drift: 0.04, vol: 0.75, mix: [1, 0.9, 1], ai: 0.15, mon: 0.28, cpu: 0.8, pop: 0.9, supply: 0.3, mat: 0.45,
-    ent: ['vacancy', 'resume', 'applicant', 'employer', 'response', 'interview', 'hire', 'view', 'contact'],
-    subs: [['Job Seekers', 'job_seekers', ['resume', 'applicant', 'response']], ['Employers', 'employers', ['employer', 'vacancy', 'tariff']], ['Gig Work', 'gigs', ['gig', 'shift', 'worker', 'payout']],
-      ['Recruiting Tools', 'recruiting', ['ats', 'pipeline_stage']]] },
-  { l1: 'Services', slug: 'services', h: 0.26, drift: 0.15, vol: 0.6, mix: [1.1, 0.8, 0.9], ai: 0.12, mon: 0.22, cpu: 0.6, pop: 0.8, supply: 0.2, mat: 0.35,
-    ent: ['provider', 'booking', 'request', 'quote', 'review', 'specialist', 'appointment', 'order', 'contact'],
-    subs: [['Home Services', 'home_services', ['request', 'quote', 'specialist']], ['Beauty', 'beauty', ['appointment', 'salon', 'master']], ['Repairs', 'repairs', ['request', 'quote', 'repair']],
-      ['Business Services', 'b2b_services', ['company', 'contract', 'quote']]] },
-  { l1: 'Payments', slug: 'payments', h: 0.62, drift: 0.12, vol: 1.1, mix: [1, 1.1, 1.1], ai: 0.46, mon: 0.62, cpu: 1.2, pop: 1.2, supply: 1.0, mat: 0.85,
-    ent: ['payment', 'transaction', 'wallet', 'refund', 'payout', 'dispute', 'chargeback', 'fee', 'card', 'balance'],
-    subs: [['Checkout', 'checkout', ['checkout', 'payment', 'order']], ['Wallet', 'wallet', ['wallet', 'balance', 'topup']], ['Buyer Protection', 'buyer_protection', ['dispute', 'claim', 'refund']],
-      ['Payouts', 'payouts', ['payout', 'seller', 'settlement']], ['Installments', 'installments', ['installment', 'loan', 'approval']]] },
-  { l1: 'Delivery', slug: 'delivery', h: 0.2, drift: -0.10, vol: 0.75, mix: [1, 0.8, 1.2], ai: 0.08, mon: 0.18, cpu: 1.1, pop: 0.9, supply: 0.4, mat: 0.3,
-    ent: ['parcel', 'courier', 'delivery', 'pickup', 'return', 'route', 'shipment', 'sla', 'order'],
-    subs: [['Last Mile', 'last_mile', ['courier', 'route', 'slot']], ['Pickup Points', 'pickup_points', ['pickup_point', 'parcel', 'storage']], ['Returns', 'returns', ['return', 'reason', 'refund']],
-      ['Courier Network', 'courier_network', ['courier', 'partner', 'capacity']]] },
-  { l1: 'Trust & Safety', slug: 'trust', h: 0.50, drift: 0.10, vol: 0.85, mix: [0.9, 1, 1.1], ai: 0.32, mon: 0.55, cpu: 1.0, pop: 0.9, supply: 0.6, mat: 0.7,
-    ent: ['moderation', 'review', 'rating', 'fraud', 'account', 'report', 'ban', 'verification', 'risk', 'complaint'],
-    subs: [['Moderation', 'moderation', ['moderation', 'queue', 'decision']], ['Fraud', 'fraud', ['fraud', 'risk_score', 'blocked_payment']], ['Ratings and Reviews', 'reviews', ['review', 'rating', 'reply']],
-      ['Identity', 'identity', ['verification', 'document', 'account']], ['Account Security', 'account_security', ['login', 'takeover', 'session']]] },
-  { l1: 'Ads', slug: 'ads', h: 0.35, drift: -0.05, vol: 0.9, mix: [1, 1.1, 0.9], ai: 0.15, mon: 0.3, cpu: 1.1, pop: 1.0, supply: 0.4, mat: 0.5,
-    ent: ['campaign', 'impression', 'click', 'promotion', 'auction', 'bid', 'budget', 'advertiser', 'placement', 'revenue'],
-    subs: [['Seller Promotion', 'promotion', ['promotion', 'boost', 'package']], ['Display Ads', 'display_ads', ['banner', 'impression', 'advertiser']], ['Ad Pricing', 'ad_pricing', ['bid', 'auction', 'price']],
-      ['Ad Measurement', 'ad_measurement', ['attribution', 'lift']]] },
-  { l1: 'Messaging', slug: 'messaging', h: 0.13, drift: -0.02, vol: 0.5, mix: [1, 0.6, 1], ai: 0.06, mon: 0.12, cpu: 0.7, pop: 0.8, supply: 0.3, mat: 0.2,
-    ent: ['chat', 'message', 'call', 'notification', 'push', 'email', 'thread', 'reply', 'conversation'],
-    subs: [['Chat', 'chat', ['chat', 'message', 'reply']], ['Calls', 'calls', ['call', 'missed_call', 'duration']], ['Notifications', 'notifications', ['push', 'email', 'delivery_rate']]] },
-  { l1: 'Growth', slug: 'growth', h: 0.34, drift: -0.08, vol: 1.0, mix: [1.2, 1, 0.9], ai: 0.2, mon: 0.25, cpu: 0.9, pop: 1.1, supply: 0.5, mat: 0.5,
-    ent: ['install', 'session', 'user', 'cohort', 'retention', 'campaign', 'channel', 'segment', 'attribution', 'visit'],
-    subs: [['Acquisition', 'acquisition', ['install', 'channel', 'attribution']], ['Retention', 'retention', ['cohort', 'retention', 'churn']], ['CRM', 'crm', ['campaign', 'segment', 'send']],
-      ['Brand Marketing', 'brand', ['awareness', 'survey', 'media']], ['Referral', 'referral', ['referral', 'invite', 'reward']]] },
+  { l1: 'Clinics', slug: 'clinics', h: 0.44, drift: 0.02, vol: 1.6, mix: [1, 1, 1.1], ai: 0.24, mon: 0.42, cpu: 1.3, pop: 1.4, supply: 1.6, mat: 0.7,
+    ent: ['visit', 'appointment', 'doctor', 'patient', 'room', 'specialty', 'referral', 'wait', 'slot', 'checkin', 'diagnosis', 'procedure', 'clinic', 'encounter'],
+    subs: [['Primary Care', 'primary_care', ['visit', 'doctor', 'checkin']], ['Specialist Care', 'specialist_care', ['referral', 'specialty', 'consult']], ['Urgent Care', 'urgent_care', ['walkin', 'wait', 'triage']],
+      ['Dental', 'dental', ['dental', 'procedure', 'chair']], ['Imaging', 'imaging', ['scan', 'mri', 'radiology']], ['Physiotherapy', 'physio', ['session', 'therapist', 'plan']]] },
+  { l1: 'Telehealth', slug: 'tele', h: 0.40, drift: 0.08, vol: 1.0, mix: [1, 0.9, 1], ai: 0.2, mon: 0.38, cpu: 1.0, pop: 1.0, supply: 0.4, mat: 0.6,
+    ent: ['consult', 'video', 'chat', 'message', 'prescription', 'doctor', 'patient', 'session', 'callback', 'device'],
+    subs: [['Video Visits', 'video_visits', ['video', 'consult', 'session']], ['Chat Care', 'chat_care', ['chat', 'message', 'reply']], ['Remote Monitoring', 'remote_monitoring', ['device', 'reading', 'alert']],
+      ['Mental Health', 'mental_health', ['therapy', 'session', 'assessment']], ['Second Opinion', 'second_opinion', ['case', 'review', 'specialist']]] },
+  { l1: 'Labs', slug: 'labs', h: 0.39, drift: 0.0, vol: 1.0, mix: [1.1, 0.8, 1], ai: 0.18, mon: 0.3, cpu: 0.9, pop: 1.0, supply: 0.3, mat: 0.5,
+    ent: ['sample', 'test', 'result', 'panel', 'order', 'turnaround', 'courier', 'analyzer', 'specimen', 'patient'],
+    subs: [['Sample Collection', 'collection', ['sample', 'draw', 'collection']], ['Lab Processing', 'lab_processing', ['test', 'analyzer', 'batch']], ['Results', 'results', ['result', 'panel', 'release']],
+      ['Pathology', 'pathology', ['biopsy', 'slide', 'report']]] },
+  { l1: 'Pharmacy', slug: 'pharmacy', h: 0.38, drift: 0.04, vol: 0.75, mix: [1, 0.9, 1], ai: 0.15, mon: 0.28, cpu: 0.8, pop: 0.9, supply: 0.3, mat: 0.45,
+    ent: ['prescription', 'drug', 'refill', 'dispense', 'stock', 'order', 'pickup', 'patient', 'pharmacist'],
+    subs: [['Prescriptions', 'prescriptions', ['prescription', 'refill', 'renewal']], ['Retail Pharmacy', 'retail_pharmacy', ['dispense', 'pickup', 'basket']], ['Home Delivery', 'home_delivery', ['delivery', 'parcel', 'route']],
+      ['Formulary', 'formulary', ['drug', 'formulary', 'substitution']]] },
+  { l1: 'Scheduling', slug: 'scheduling', h: 0.26, drift: 0.15, vol: 0.6, mix: [1.1, 0.8, 0.9], ai: 0.12, mon: 0.22, cpu: 0.6, pop: 0.8, supply: 0.2, mat: 0.35,
+    ent: ['appointment', 'slot', 'booking', 'cancellation', 'noshow', 'reminder', 'waitlist', 'capacity', 'patient'],
+    subs: [['Online Booking', 'online_booking', ['booking', 'slot', 'search']], ['Call Center', 'call_center', ['call', 'agent', 'queue']], ['Reminders', 'reminders', ['reminder', 'sms', 'noshow']],
+      ['Waitlist', 'waitlist', ['waitlist', 'capacity', 'backfill']]] },
+  { l1: 'Insurance & Billing', slug: 'billing', h: 0.62, drift: 0.12, vol: 1.1, mix: [1, 1.1, 1.1], ai: 0.46, mon: 0.62, cpu: 1.2, pop: 1.2, supply: 1.0, mat: 0.85,
+    ent: ['claim', 'invoice', 'payer', 'denial', 'copay', 'payment', 'coverage', 'contract', 'refund', 'member'],
+    subs: [['Claims', 'claims', ['claim', 'denial', 'resubmission']], ['Patient Billing', 'patient_billing', ['invoice', 'copay', 'payment']], ['Payer Contracts', 'payer_contracts', ['payer', 'contract', 'tariff']],
+      ['Coverage Checks', 'coverage', ['coverage', 'eligibility', 'preauth']], ['Corporate Plans', 'corporate_plans', ['employer', 'plan', 'member']]] },
+  { l1: 'Supply', slug: 'supply', h: 0.2, drift: -0.10, vol: 0.75, mix: [1, 0.8, 1.2], ai: 0.08, mon: 0.18, cpu: 1.1, pop: 0.9, supply: 0.4, mat: 0.3,
+    ent: ['item', 'stock', 'order', 'supplier', 'expiry', 'consumable', 'equipment', 'delivery', 'clinic'],
+    subs: [['Consumables', 'consumables', ['consumable', 'stock', 'reorder']], ['Equipment', 'equipment', ['device', 'maintenance', 'uptime']], ['Procurement', 'procurement', ['supplier', 'contract', 'price']],
+      ['Sterilization', 'sterilization', ['instrument', 'cycle', 'tray']]] },
+  { l1: 'Quality & Safety', slug: 'quality', h: 0.50, drift: 0.10, vol: 0.85, mix: [0.9, 1, 1.1], ai: 0.32, mon: 0.55, cpu: 1.0, pop: 0.9, supply: 0.6, mat: 0.7,
+    ent: ['incident', 'outcome', 'readmission', 'infection', 'audit', 'guideline', 'complication', 'review', 'patient', 'risk'],
+    subs: [['Clinical Outcomes', 'outcomes', ['outcome', 'readmission', 'complication']], ['Patient Safety', 'patient_safety', ['incident', 'fall', 'medication_error']], ['Audits', 'audits', ['audit', 'guideline', 'compliance']],
+      ['Infection Control', 'infection_control', ['infection', 'hygiene', 'isolation']], ['Complaints', 'complaints', ['complaint', 'case', 'resolution']]] },
+  { l1: 'Marketing', slug: 'marketing', h: 0.35, drift: -0.05, vol: 0.9, mix: [1, 1.1, 0.9], ai: 0.15, mon: 0.3, cpu: 1.1, pop: 1.0, supply: 0.4, mat: 0.5,
+    ent: ['campaign', 'channel', 'lead', 'visit', 'segment', 'attribution', 'referral', 'partner', 'impression', 'budget'],
+    subs: [['Patient Acquisition', 'acquisition', ['campaign', 'channel', 'lead']], ['Referral Partners', 'referral_partners', ['referral', 'partner', 'physician']], ['Brand', 'brand', ['awareness', 'survey', 'media']],
+      ['Corporate Sales', 'corporate_sales', ['employer', 'deal', 'pipeline_stage']]] },
+  { l1: 'Staffing', slug: 'staffing', h: 0.13, drift: -0.02, vol: 0.5, mix: [1, 0.6, 1], ai: 0.06, mon: 0.12, cpu: 0.7, pop: 0.8, supply: 0.3, mat: 0.2,
+    ent: ['shift', 'doctor', 'nurse', 'schedule', 'overtime', 'hire', 'credential', 'utilization', 'clinic'],
+    subs: [['Rostering', 'rostering', ['shift', 'roster', 'overtime']], ['Recruiting', 'recruiting', ['hire', 'candidate', 'vacancy']], ['Credentialing', 'credentialing', ['license', 'credential', 'renewal']]] },
+  { l1: 'Patients', slug: 'patients', h: 0.34, drift: -0.08, vol: 1.0, mix: [1.2, 1, 0.9], ai: 0.2, mon: 0.25, cpu: 0.9, pop: 1.1, supply: 0.5, mat: 0.5,
+    ent: ['patient', 'account', 'consent', 'record', 'session', 'cohort', 'retention', 'feedback', 'survey', 'visit'],
+    subs: [['Patient App', 'patient_app', ['app', 'session', 'login']], ['Patient Records', 'patient_records', ['record', 'consent', 'document']], ['Feedback', 'feedback', ['survey', 'nps', 'complaint']],
+      ['Family Accounts', 'family_accounts', ['family', 'dependent', 'child']], ['Loyalty', 'loyalty', ['member', 'benefit', 'retention']]] },
   { l1: 'Data Platform', slug: 'platform', h: 0.7, drift: 0.05, vol: 0.85, mix: [1.1, 0.4, 1.8], ai: 0.55, mon: 0.6, cpu: 1.6, pop: 1.0, supply: 2.6, mat: 0.9,
     ent: ['pipeline', 'job', 'table', 'experiment', 'assignment', 'dataset', 'query', 'freshness', 'checker', 'event'],
     subs: [['Pipelines', 'pipelines', ['pipeline', 'job', 'run']], ['Data Apps', 'data_apps', ['app', 'query', 'user']], ['Experimentation', 'experiments', ['experiment', 'assignment', 'exposure']],
-      ['Data Quality', 'data_quality', ['checker', 'incident', 'contract']], ['ML Features', 'ml_features', ['feature', 'model']]] },
+      ['Data Quality', 'data_quality', ['checker', 'incident', 'contract']], ['ML Models', 'ml_models', ['feature', 'model']]] },
   { l1: 'Core', slug: 'core', h: 0.8, drift: 0.03, vol: 1.2, mix: [0.9, 2.4, 0.9], ai: 0.55, mon: 0.7, cpu: 1.3, pop: 1.8, supply: 3.0, mat: 0.95,
-    ent: ['gmv', 'revenue', 'buyer', 'seller', 'listing', 'user', 'order', 'deal', 'kpi', 'target', 'audience'],
-    subs: [['Core Metrics', 'core_metrics', ['user', 'buyer', 'seller', 'deal']], ['Executive Reporting', 'exec', ['kpi', 'target', 'plan']], ['Finance Reporting', 'finance', ['revenue', 'cost', 'margin']],
+    ent: ['patient', 'visit', 'revenue', 'doctor', 'clinic', 'encounter', 'kpi', 'target', 'capacity', 'cost'],
+    subs: [['Core Metrics', 'core_metrics', ['patient', 'visit', 'encounter', 'clinic']], ['Executive Reporting', 'exec', ['kpi', 'target', 'plan']], ['Finance Reporting', 'finance', ['revenue', 'cost', 'margin']],
       ['Company Planning', 'planning', ['plan', 'forecast']]] },
 ];
 // subdomains without objects (empty states) and governance gaps (L0 cases)
-const EMPTY = new Set(['Real Estate|Mortgages', 'Jobs|Recruiting Tools', 'Ads|Ad Measurement', 'Data Platform|ML Features', 'Core|Company Planning']);
-const NO_BP_DOMAIN = new Set(['Messaging']);                         // no BI partner anywhere
-const NO_ST = new Set(['Delivery|Returns', 'Delivery|Courier Network', 'Services|Repairs']);   // no data owner
-const NO_BP = new Set(['Growth|Brand Marketing', 'Real Estate|Agencies']);
+const EMPTY = new Set(['Labs|Pathology', 'Pharmacy|Formulary', 'Marketing|Brand', 'Data Platform|ML Models', 'Core|Company Planning']);
+const NO_BP_DOMAIN = new Set(['Staffing']);                          // no BI partner anywhere
+const NO_ST = new Set(['Supply|Procurement', 'Supply|Sterilization', 'Scheduling|Waitlist']);   // no data owner
+const NO_BP = new Set(['Patients|Family Accounts', 'Labs|Sample Collection']);
 
 const SUBS = [];
 D.forEach((d, di) => d.subs.forEach(([l2, slug, kw]) => SUBS.push({ i: SUBS.length, d, di, l1: d.l1, l2, slug, kw, key: d.l1 + '|' + l2, empty: EMPTY.has(d.l1 + '|' + l2) })));
@@ -109,7 +109,7 @@ const LAST = ['Okafor', 'Lindqvist', 'Moreau', 'Tanaka', 'Haddad', 'Fischer', 'A
   'Adeyemi', 'Rossi', 'Kaur', 'Dubois', 'Jensen', 'Mwangi', 'Ortega', 'Park', 'Weber', 'Santos', 'Bakker', 'Aziz', 'Laine', 'Quinn', 'Reyes', 'Schmidt', 'Takahashi', 'Vos', 'Wright', 'Yilmaz',
   'Zhou', 'Abara', 'Berg', 'Castillo', 'Dahl', 'Eriksen', 'Gallo', 'Hoffman', 'Ito', 'Kariuki', 'Lund', 'Meyer', 'Nilsen', 'Osei', 'Petrov', 'Romero', 'Sandoval', 'Torres', 'Ueda', 'Valdez'];
 const TITLES = {
-  st: ['Head of Analytics', 'Director of Analytics', 'Analytics Lead', 'VP of Data', 'Head of Product Analytics', 'Director of Business Intelligence'],
+  st: ['Head of Analytics', 'Director of Analytics', 'Analytics Lead', 'VP of Data', 'Head of Clinical Analytics', 'Director of Business Intelligence'],
   bp: ['Senior BI Developer', 'BI Developer', 'Lead BI Developer', 'Analytics Team Lead', 'Senior Data Analyst', 'BI Engineer'],
   cur: ['Product Analyst', 'Senior Product Analyst', 'Data Analyst', 'Metrics Analyst', 'Senior Analyst'],
   ai: ['Analytics Engineer', 'Senior Data Scientist', 'ML Engineer', 'Product Analyst', 'AI Analytics Lead', 'Data Scientist'],
@@ -136,37 +136,37 @@ D.forEach(d => {
   });
 });
 // one AI champion is assigned in the snapshot but missing from the registry: the UI shows "assigned, name not found"
-const ghost = SUBS.find(s => s.l1 === 'Jobs' && !s.people.ai); if (ghost) ghost.ghostAi = 'p' + (900 + ghost.i);
+const ghost = SUBS.find(s => s.l1 === 'Pharmacy' && !s.people.ai); if (ghost) ghost.ghostAi = 'p' + (900 + ghost.i);
 
 // ---------- object volumes ----------
 const TOTAL = [2500, 6000, 2500];   // dash, met, dm
 const live = SUBS.filter(s => !s.empty);
 live.forEach(s => { const base = s.d.vol * lognorm(0, 0.55); s.w = s.d.mix.map(m => base * m * lognorm(0, 0.3)); if (chance(0.08)) s.w[1] = 0; });
 // a couple of subdomains with a single kind of object
-live.find(s => s.key === 'Growth|Brand Marketing').w = [live.find(s => s.key === 'Growth|Brand Marketing').w[0], 0, 0];
-live.find(s => s.key === 'Delivery|Pickup Points').w[1] = 0;
+live.find(s => s.key === 'Patients|Family Accounts').w = [live.find(s => s.key === 'Patients|Family Accounts').w[0], 0, 0];
+live.find(s => s.key === 'Supply|Consumables').w[1] = 0;
 [0, 1, 2].forEach(t => { const W = live.reduce((a, s) => a + s.w[t], 0); live.forEach(s => { s.n = s.n || [0, 0, 0]; s.n[t] = Math.round(TOTAL[t] * s.w[t] / W); }); });
 live.forEach(s => { s.h = clamp(s.d.h + gauss() * 0.06, 0.04, 0.88); s.drift = s.d.drift + gauss() * 0.03; s.skill = chance(0.15 + 0.75 * s.d.mat) ? 1 : 0; });
 
 // ---------- names ----------
-const PL = { category: 'categories', property: 'properties', delivery: 'deliveries', inquiry: 'inquiries', search: 'searches', status: 'statuses', analysis: 'analyses', gmv: 'gmv', sla: 'sla', kpi: 'kpis' };
+const PL = { dental: 'dental', video: 'video visits', specialty: 'specialties', therapy: 'therapies', pharmacy: 'pharmacies', delivery: 'deliveries', search: 'searches', status: 'statuses', analysis: 'analyses', diagnosis: 'diagnoses', sla: 'sla', kpi: 'kpis', mri: 'mri', noshow: 'no-shows', walkin: 'walk-ins', checkin: 'check-ins', copay: 'copays' };
 const plural = w => PL[w] || (/(s|x|ch|sh)$/.test(w) ? w + 'es' : w.endsWith('y') && !/[aeiou]y$/.test(w) ? w.slice(0, -1) + 'ies' : w + 's');
 const used = { dm: new Set(), met: new Set(), dash: new Set() };
 const uniq = (set, make) => { for (let k = 0; k < 40; k++) { const n = make(); if (!set.has(n)) { set.add(n); return n; } } let n = make(), v = 2; while (set.has(n + '_v' + v)) v++; set.add(n + '_v' + v); return n + '_v' + v; };
 const entsOf = s => [...s.kw, ...s.kw, ...s.d.ent];
-const QUAL = ['events', 'facts', 'agg', 'funnel', 'cohort', 'snapshot', 'stats', 'by_category', 'by_region', 'by_channel', 'enriched', 'history', 'sessions', 'attribution', 'quality', 'costs', 'segments'];
+const QUAL = ['events', 'facts', 'agg', 'funnel', 'cohort', 'snapshot', 'stats', 'by_clinic', 'by_region', 'by_specialty', 'enriched', 'history', 'episodes', 'attribution', 'quality', 'costs', 'segments'];
 const GRAIN = ['daily', 'daily', 'daily', 'weekly', 'monthly', 'hourly', ''];
 function dmName(s) { return uniq(used.dm, () => {
   const schema = wpick(['dm', 'dds', 'cdm', 'mart'], x => ({ dm: 6, dds: 2, cdm: 1, mart: 1 })[x]);
   const prefix = chance(0.55) ? s.slug : s.d.slug, e = pick(entsOf(s)), q = chance(0.6) ? pick(QUAL) : '', g = pick(GRAIN);
   return schema + '.' + [prefix, e, q, g].filter(Boolean).join('_'); }); }
-const ADJ = ['active', 'new', 'returning', 'paying', 'unique', 'churned', 'engaged', 'first_time'];
-const ACTORS = new Set(['buyer', 'seller', 'user', 'dealer', 'applicant', 'employer', 'courier', 'advertiser', 'host', 'guest', 'provider', 'specialist', 'worker', 'tenant', 'landlord',
-  'agent', 'agency', 'company', 'account', 'master', 'salon', 'developer', 'partner', 'audience']);
+const ADJ = ['active', 'new', 'returning', 'insured', 'unique', 'churned', 'engaged', 'first_time'];
+const ACTORS = new Set(['patient', 'doctor', 'nurse', 'specialist', 'therapist', 'payer', 'employer', 'member', 'agent', 'candidate', 'supplier', 'partner', 'physician',
+  'dependent', 'child', 'pharmacist', 'audience', 'user']);
 const WIN = ['1d', '7d', '28d', '30d', '90d', 'mtd', 'ytd'];
-const MEAS = ['count', 'conversion', 'ctr', 'share', 'rate', 'avg_price', 'gmv', 'gmv_net', 'revenue', 'revenue_net', 'avg_check', 'median_time', 'p90_time', 'cancel_rate', 'refund_rate',
-  'per_user', 'per_session', 'depth', 'nps', 'ltv', 'cac', 'margin', 'sla_hit_rate', 'response_rate', 'reach', 'frequency', 'cost', 'roi', 'fill_rate', 'approval_rate'];
-const SEG = ['mobile', 'web', 'b2b', 'b2c', 'new_users', 'top_categories', 'paid', 'organic', 'pro', 'private'];
+const MEAS = ['count', 'conversion', 'share', 'rate', 'avg_wait', 'median_time', 'p90_time', 'cancel_rate', 'noshow_rate', 'readmission_rate', 'revenue', 'revenue_net', 'avg_bill',
+  'per_patient', 'per_visit', 'utilization', 'nps', 'ltv', 'cac', 'margin', 'sla_hit_rate', 'response_rate', 'reach', 'cost', 'denial_rate', 'fill_rate', 'approval_rate', 'turnaround', 'occupancy', 'repeat_rate'];
+const SEG = ['mobile', 'web', 'insured', 'self_pay', 'corporate', 'new_patients', 'top_specialties', 'adult', 'pediatric', 'remote'];
 function metName(s) { return uniq(used.met, () => {
   const ents = entsOf(s), actors = ents.filter(x => ACTORS.has(x)), r = rnd();
   if (r < 0.25 && actors.length) return [pick(ADJ), plural(pick(actors)), pick(WIN)].join('_');
@@ -174,8 +174,8 @@ function metName(s) { return uniq(used.met, () => {
   if (r < 0.55) return [e, pick(MEAS)].join('_') + (chance(0.3) ? '_' + pick(WIN) : '');
   if (r < 0.8) return [s.slug, e, pick(MEAS)].join('_');
   return [e, pick(MEAS), pick(SEG)].join('_'); }); }
-const VIEW = ['funnel', 'overview', 'health', 'dynamics', 'breakdown', 'monitor', 'report', 'cohort analysis', 'KPI tree', 'scorecard', 'deep dive', 'by region', 'by category',
-  'unit economics', 'quality', 'SLA', 'forecast', 'anomalies', 'pulse', 'conversion', 'trends', 'targets vs actuals', 'retention', 'segments'];
+const VIEW = ['funnel', 'overview', 'health', 'dynamics', 'breakdown', 'monitor', 'report', 'cohort analysis', 'KPI tree', 'scorecard', 'deep dive', 'by region', 'by specialty',
+  'unit economics', 'quality', 'SLA', 'forecast', 'anomalies', 'pulse', 'conversion', 'trends', 'targets vs actuals', 'retention', 'by clinic', 'capacity'];
 const CAD = ['daily', 'weekly', 'weekly', 'monthly', '', '', '', 'YoY'];
 function dashName(s) { return uniq(used.dash, () => {
   const topic = chance(0.35) ? s.l2.toLowerCase() : plural(pick(entsOf(s))).replace(/_/g, ' '), v = pick(VIEW), c = pick(CAD);
@@ -250,7 +250,7 @@ const CHK = OBJECTS.map((o, k) => {
 // ---------- incidents (60 days before INC_DATE, plus open ones) ----------
 const INC = [];
 const dmK = OBJECTS.map((o, k) => k).filter(k => OBJECTS[k][0] === 2);
-const incBase = { Delivery: 2.2, Growth: 1.6, Messaging: 1.5, Ads: 1.3, Goods: 1.1, Payments: 0.9, Core: 0.7 };
+const incBase = { Supply: 2.2, Patients: 1.6, Staffing: 1.5, Marketing: 1.3, Clinics: 1.1, 'Insurance & Billing': 0.9, Core: 0.7 };
 const withChk = dmK.filter(k => CHK[k] && CHK[k][1][4] > 0);
 const T0 = Date.parse(INC_DATE + 'T12:00:00Z');
 const stamp = t => new Date(t).toISOString().slice(0, 16);
@@ -353,9 +353,57 @@ const DOMAINS = SUBS.map(s => {
     dash.length, met.length, hm, hv, ha, skill ? ri(3, 40) : 0, air, faq, obj, gl, lin, t2s];
 });
 
+// ---------- signals of the 2027 method (AI-Ready v4): tier, SLO, admission, certification, answers ----------
+// separate random stream: adding signals does not change any data above
+const R2 = mulberry32((SEED * 7919 + 101) >>> 0);
+const u2 = (a, b) => a + (b - a) * R2(), i2 = (a, b) => Math.floor(u2(a, b + 1)), c2 = p => R2() < p, w2 = (items, w) => { const W = items.reduce((t, x, i) => t + w(x, i), 0); let r = R2() * W; for (let i = 0; i < items.length; i++) { r -= w(items[i], i); if (r <= 0) return items[i]; } return items[items.length - 1]; };
+const SLO_MIN = [27, 26, 24];                     // days of 28 the object must meet its SLO, by tier 0..2
+const ADM_N = [2, 7, 8];                          // number of admission criteria: dashboard, metric, data mart
+const SIG = OBJECTS.map((o, k) => {
+  const t = o[0], s = SUBS[o[1]], q = META[k].q, legacy = o[2] >= 2, chk = CHK[k], crit = t === 2 && chk ? chk[1][3] : 0;
+  // tier: 0 business critical, 1 important, 2 regular, 3 sandbox (not counted anywhere)
+  const tier = o[3] < 3 && q < 0.35 && c2(0.45) ? 3 : crit || q > 0.95 ? 0 : q > 0.7 ? 1 : 2;
+  // SLO days met of 28; null — no telemetry (the object is missing from the components export)
+  let slo = chk == null ? null : legacy ? (c2(0.9) ? 28 - w2([0, 1, 2], x => [0.7, 0.22, 0.08][x]) : i2(22, 26)) : i2(9, 26);
+  if (slo != null && tier < 3 && slo >= SLO_MIN[tier] && !legacy && c2(0.25)) slo = SLO_MIN[tier] - i2(1, 4);
+  // cause of the breach: 1 own object, 2 source, 3 platform
+  const cause = slo != null && tier < 3 && slo < SLO_MIN[tier] ? w2([1, 2, 3], x => [0.55, 0.3, 0.15][x - 1]) : 0;
+  const red = cause ? (cause === 1 && (o[2] & 1) && c2(0.5) ? i2(14, 30) : i2(1, 13)) : 0;   // days red in a row
+  // admission criteria, one char per criterion: '1' passed, '0' failed
+  let adm;
+  if (t === 2) { const c = chk ? chk[0] : '11111111111';
+    adm = [c[1], c[2], c2(0.97) ? '1' : '0', c[9], c[0], c2(legacy ? 0.95 : 0.8) ? '1' : '0', c[3] === '0' ? '0' : '1', c[10]].map(x => x === '-' ? '1' : x).join(''); }
+  else if (t === 1) adm = [c2(legacy ? 0.99 : 0.85), c2(0.97), c2(legacy ? 0.99 : 0.9), c2(0.95), c2(s.people.cur ? 0.97 : 0.7), c2(legacy ? 0.99 : 0.9), c2(0.98)].map(x => x ? '1' : '0').join('');
+  else { const c = chk ? chk[0] : '111111'; adm = [c[5] === '0' ? '0' : '1', c[3]].map(x => x === '-' ? '1' : x).join(''); }
+  // mature subdomains keep admission tidy: a share of objects passes every criterion
+  if (tier < 3 && c2(0.1 + 0.45 * s.d.mat)) adm = adm.replace(/0/g, '1');
+  // days left before the object is taken off publication (14-day countdown); -1 — exception granted with its own deadline
+  const admLeft = adm.includes('0') ? (c2(0.08) ? -1 : i2(0, 14)) : null;
+  // certification: 0 none, 1 candidate waiting for review, 2 certified, 3 recertification, 4 not confirmed (no decision in 21 days)
+  let cert = 0, certDays = 0;
+  if (o[2] & 1) { if (cause === 1 && red >= 14) { certDays = i2(0, 30); cert = certDays > 21 ? 4 : 3; } else cert = 2; }
+  else if (cause === 0 && !adm.includes('0') && q > 0.6 && tier < 3 && c2(0.22)) { cert = 1; certDays = i2(0, 22); }
+  return [tier, slo, cause, red, adm, admLeft, cert, certDays];
+});
+// inheritance: a dashboard is no healthier than its weakest data mart; the breach is put on the source
+for (let i = 0; i < G_DD.length; i += 2) { const a = SIG[G_DD[i]], b = SIG[G_DD[i + 1]];
+  if (a[2] && a[0] < 3 && !b[2] && b[1] != null && b[0] < 3 && c2(0.6)) { b[1] = Math.min(b[1], a[1]); b[2] = 2; b[3] = a[3]; if (b[6] === 2 && c2(0.1)) b[6] = 2; } }
+// answers per subdomain: [golden questions, golden pass, held-out questions, held-out pass, held-out baseline, golden coverage, feedback useful, problem, total, install and read problems, answers on trusted objects]
+const ANS = SUBS.map(s => { if (s.empty) return null; const mat = s.d.mat, sk = s.skill;
+  const gN = sk ? i2(50, 170) : c2(0.65) ? i2(50, 90) : c2(0.5) ? i2(10, 49) : 0, gP = gN ? Math.min(0.94, u2(0.34, 0.7) + 0.2 * mat + (sk ? 0.04 : 0)) : null;
+  const hN = Math.round(u2(0, 1) * (sk ? 70 : 25) * (0.4 + mat)), base = hN ? u2(0.02, 0.18) + 0.12 * mat : null, hP = hN ? Math.min(0.8, base + u2(-0.03, 0.14) * (sk ? 1.3 : 0.6)) : null;
+  const fT = sk ? i2(0, 45) : i2(0, 6), fP = Math.round(fT * u2(0.35, 0.85)), fU = Math.min(fT - fP, Math.round(fT * u2(0.05, 0.4))), fI = Math.round(fP * u2(0.3, 0.65));
+  return [gN, gP == null ? null : Math.round(gP * 1000) / 1000, hN, hP == null ? null : Math.round(hP * 1000) / 1000, base == null ? null : Math.round(base * 1000) / 1000,
+    gN ? Math.round(u2(0.08, 0.5 + 0.35 * mat) * 1000) / 1000 : 0, fU, fP, fT, fI, Math.round(u2(0.1, 0.35 + 0.4 * mat) * 1000) / 1000]; });
+// key measures in domain calculations: [measures found in consumed data marts and report datasets, consumption-weighted share represented by a healthy Semantic Layer metric]
+const SEM = SUBS.map(s => { if (s.empty) return null; const met = bySubType[s.i][1], hm = met.length ? met.filter(k => SIG[k][2] === 0 && SIG[k][1] != null).length / met.length : 0;
+  return [i2(12, 140), Math.round(clamp(u2(0.05, 0.2) + hm * u2(0.3, 0.85) + (s.l1 === 'Core' ? 0.15 : 0), 0, 0.95) * 1000) / 1000]; });
+// readiness of the two P0 metrics that enter the minimum later: days of daily computation without gaps, share of objects tagged by domain, baseline published
+const READY = { real: { days: 19, tagged: 0.62, baseline: false }, reports: { days: 28, tagged: 0.86, baseline: true } };
+
 // ---------- write ----------
 fs.mkdirSync(OUT, { recursive: true });
-const HEAD = `// Synthetic data for the Insight Factories open demo (fictional company Harbor Market). Generated by pipeline/generate.mjs, seed ${SEED}. Do not edit by hand.\n`;
+const HEAD = `// Synthetic data for the Insight Factories open demo (fictional company Harbor Health). Generated by pipeline/generate.mjs, seed ${SEED}. Do not edit by hand.\n`;
 const J = v => JSON.stringify(v);
 const files = {
   'data.js': HEAD + `// DOMAINS row: [l1, l2, bp, cur, ai, st, zone, roles, skill, dash, met, hm, hv, ha, kbn, air, faq, obj, gl, lin, t2s]; people are ids p<N>, 0 = nobody.
@@ -401,6 +449,18 @@ export const G_MS=${J(G_MS)};
   'keymet.js': HEAD + `// Key (certified) metrics and top-importance metrics — object indexes in OBJECTS.
 export const KEY_MET=${J(KEY_MET)};
 export const I0_MET=${J(I0_MET)};
+`,
+  'signals.js': HEAD + `// Signals of the 2027 method. SIG[i] aligned with OBJECTS: [tier 0..3 (3 sandbox), SLO days met of 28 or null (no telemetry), breach cause 0 none | 1 object | 2 source | 3 platform,
+//   days red in a row, admission criteria '1'|'0' (data mart: owner, description, domain, BI partner, Trino, key, 30% of columns described, no deprecated sources;
+//   metric: schedule, no temp schemas, no public schemas, no duplicates, curator, description, live sources; dashboard: README, built on datasets or metrics),
+//   days left before unpublishing or -1 exception or null, certification 0 none | 1 candidate | 2 certified | 3 recertification | 4 not confirmed, days in that state]
+// ANS[subdomain] = [golden questions, golden pass, held-out questions, held-out pass, held-out baseline, golden coverage, feedback useful, problem, total, install and read problems, answers on trusted objects]
+// SEM[subdomain] = [key measures, weighted share represented by a healthy Semantic Layer metric]; READY — readiness of P0 metrics 4 and 5 for the minimum
+export const SLO_MIN=${J(SLO_MIN)};
+export const SIG=${J(SIG)};
+export const ANS=${J(ANS)};
+export const SEM=${J(SEM)};
+export const READY=${J(READY)};
 `,
   'o3.js': HEAD + `// O3: { "domain|subdomain": [non-analysts in the audience, [active with AI scenarios per week]] }; O3_WEEKS — Mondays of the first and last week.
 export const O3=${J(O3)};

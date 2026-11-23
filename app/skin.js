@@ -48,7 +48,7 @@ export const SKIN = {
   game: {
     title: 'Insight factory performance',
     nav: 'Insight Factories world', home: MAP(), homeBtn: 'Open the Insight Factories world', ctaTitle: 'Insight Factories world in 3D',
-    ctaText: 'The city is Harbor Market leadership, an industrial zone is a domain, a factory is a subdomain; roads and trucks show who reads whose data',
+    ctaText: 'The city is Harbor Health leadership, an industrial zone is a domain, a factory is a subdomain; roads and trucks show who reads whose data',
     ctaSec: 'Map',
     icon: '<svg width="54" height="40" viewBox="0 0 54 40"><path d="M4 30 27 18l23 12-23 10z" fill="var(--track)"/><path d="M10 27v-8l7-3v8z" fill="var(--ok-line)"/><path d="M19 23v-11l9-4v11z" fill="var(--warn-line)"/><path d="M30 20v-7l8-3v7z" fill="var(--bad-line)"/><path d="M38 25v-5l7-3v5z" fill="var(--ok-line)"/></svg>',
     l1: u => ({ label: 'On the map', url: MAP('u=' + encodeURIComponent(u.name)) }),
